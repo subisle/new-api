@@ -1,0 +1,55 @@
+name: Build rk3318 ARM64 Docker image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-arm64-image:
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+    env:
+      IMAGE_NAME: new-api-rk3318-home-text
+      IMAGE_TAG: rk3318-home-text
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Write version
+        run: |
+          VERSION="rk3318-home-text-$(date +'%Y%m%d')-${GITHUB_SHA::7}"
+          echo "$VERSION" > VERSION
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build linux/arm64 image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+          sbom: false
+
+      - name: Save image tarball
+        run: |
+          mkdir -p artifact
+          docker image inspect "${IMAGE_NAME}:${IMAGE_TAG}"
+          docker save "${IMAGE_NAME}:${IMAGE_TAG}" | gzip -1 > artifact/new-api-rk3318-home-text-arm64.tar.gz
+          sha256sum artifact/new-api-rk3318-home-text-arm64.tar.gz > artifact/SHA256SUMS.txt
+          printf '%s:%s\n' "$IMAGE_NAME" "$IMAGE_TAG" > artifact/image.txt
+          printf '%s\n' "$VERSION" > artifact/VERSION.txt
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: new-api-rk3318-home-text-arm64
+          path: artifact/*
+          retention-days: 3
