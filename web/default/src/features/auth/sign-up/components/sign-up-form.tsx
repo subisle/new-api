@@ -20,6 +20,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { motion } from 'motion/react'
 import { Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -101,6 +102,7 @@ export function SignUpForm({
   })
 
   const emailValue = form.watch('email')
+  const passwordValue = form.watch('password')
   const emailVerificationRequired = !!status?.email_verification
   const hasUserAgreement = Boolean(status?.user_agreement_enabled)
   const hasPrivacyPolicy = Boolean(status?.privacy_policy_enabled)
@@ -233,7 +235,7 @@ export function SignUpForm({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className={cn('grid gap-4', className)}
+        className={cn('grid gap-5', className)}
         {...props}
       >
         {/* Username Field */}
@@ -244,7 +246,11 @@ export function SignUpForm({
             <FormItem>
               <FormLabel>{t('Username')}</FormLabel>
               <FormControl>
-                <Input placeholder={t('Enter your username')} {...field} />
+                <Input
+                  placeholder={t('Enter your username')}
+                  className='h-11 rounded-xl px-3.5'
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -261,6 +267,7 @@ export function SignUpForm({
               <FormControl>
                 <PasswordInput
                   placeholder={t('Enter password (8-20 characters)')}
+                  className='[&_input]:h-[52px] [&_input]:rounded-xl [&_input]:border-2 [&_input]:px-3.5 [&_button]:h-8 [&_button]:w-8'
                   {...field}
                 />
               </FormControl>
@@ -277,7 +284,14 @@ export function SignUpForm({
             <FormItem>
               <FormLabel>{t('Confirm password')}</FormLabel>
               <FormControl>
-                <PasswordInput placeholder={t('Confirm password')} {...field} />
+                <AssistedPasswordConfirmation
+                  password={passwordValue}
+                  placeholder={t('Confirm password')}
+                  value={field.value || ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -300,6 +314,7 @@ export function SignUpForm({
                     <Input
                       placeholder={t('name@example.com')}
                       type='email'
+                      className='h-11 rounded-xl px-3.5'
                       {...field}
                     />
                   </FormControl>
@@ -315,11 +330,13 @@ export function SignUpForm({
                   placeholder={t('Verification code')}
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value)}
+                  className='h-11 rounded-xl px-3.5'
                 />
               </div>
               <Button
                 variant='outline'
                 type='button'
+                className='h-11 rounded-xl'
                 disabled={
                   isLoading ||
                   isSendingCode ||
@@ -355,13 +372,13 @@ export function SignUpForm({
           status={status}
           checked={agreedToLegal}
           onCheckedChange={setAgreedToLegal}
-          className='mt-1'
+          className='mt-0'
         />
 
         {/* Submit Button */}
         <Button
           type='submit'
-          className='mt-2 w-full justify-center gap-2'
+          className='mt-1 h-11 w-full justify-center gap-2 rounded-xl'
           disabled={
             isLoading ||
             (requiresLegalConsent && !agreedToLegal) ||
@@ -378,7 +395,7 @@ export function SignUpForm({
             disabled={isLoading || (requiresLegalConsent && !agreedToLegal)}
             onWeChatLogin={hasWeChatLogin ? handleOpenWeChatDialog : undefined}
             isWeChatLoading={isWeChatSubmitting}
-            className='pt-2'
+            className='pt-1'
           />
         )}
       </form>
@@ -452,5 +469,94 @@ export function SignUpForm({
         </Dialog>
       )}
     </Form>
+  )
+}
+
+function AssistedPasswordConfirmation({
+  password,
+  placeholder,
+  value,
+  onChange,
+  onBlur,
+  name,
+}: {
+  password: string
+  placeholder: string
+  value: string
+  onChange: (value: string) => void
+  onBlur: () => void
+  name: string
+}) {
+  const [shake, setShake] = useState(false)
+
+  useEffect(() => {
+    if (!shake) return
+
+    const timer = window.setTimeout(() => setShake(false), 500)
+    return () => window.clearTimeout(timer)
+  }, [shake])
+
+  const handleConfirmPasswordChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (
+      password &&
+      value.length >= password.length &&
+      event.target.value.length > value.length
+    ) {
+      setShake(true)
+      return
+    }
+
+    onChange(event.target.value)
+  }
+
+  const getLetterStatus = (letter: string, index: number) => {
+    if (!value[index]) return ''
+    return value[index] === letter ? 'bg-emerald-500/20' : 'bg-red-500/20'
+  }
+
+  const passwordsMatch = Boolean(password) && password === value
+  const passwordSlots = password || value
+
+  return (
+    <div>
+      <motion.div
+        className='relative h-[52px] w-full overflow-hidden rounded-xl border-2 bg-background'
+        animate={{
+          x: shake ? [-10, 10, -10, 10, 0] : 0,
+          scale: passwordsMatch ? [1, 1.02, 1] : 1,
+          borderColor: passwordsMatch ? '#10B981' : '',
+        }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className='pointer-events-none absolute inset-y-0 left-3 z-0 flex h-full items-center justify-start'>
+          {passwordSlots.split('').map((letter, index) => (
+            <motion.div
+              key={`${letter}-${index}`}
+              className={cn(
+                'absolute h-full w-4 transition-all duration-300',
+                getLetterStatus(letter, index)
+              )}
+              style={{
+                left: `${index * 16}px`,
+                scaleX: value[index] ? 1 : 0,
+                transformOrigin: 'left',
+              }}
+            />
+          ))}
+        </div>
+
+        <input
+          name={name}
+          type='password'
+          placeholder={placeholder}
+          value={value}
+          onChange={handleConfirmPasswordChange}
+          onBlur={onBlur}
+          className='placeholder:text-muted-foreground relative z-10 h-full w-full bg-transparent px-3.5 py-3 text-foreground tracking-[0.4em] outline-none placeholder:tracking-normal'
+        />
+      </motion.div>
+    </div>
   )
 }

@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useEffect, useCallback } from 'react'
+import { isAxiosError } from 'axios'
 import {
   useSystemConfigStore,
   type CurrencyConfig,
@@ -26,6 +27,7 @@ import {
 } from '@/stores/system-config-store'
 import { DEFAULT_SYSTEM_NAME, DEFAULT_LOGO } from '@/lib/constants'
 import { applyFaviconToDom } from '@/lib/dom-utils'
+import { getStatus } from '@/lib/api'
 
 interface UseSystemConfigOptions {
   /** Automatically fetch config from backend (use only in root component) */
@@ -103,13 +105,8 @@ export function mapStatusDataToConfig(
 
 // Fetch system config from API
 async function fetchSystemConfig(): Promise<Partial<SystemConfig>> {
-  const response = await fetch('/api/status')
-  if (!response.ok) throw new Error('Failed to fetch status')
-
-  const data: StatusApiResponse = await response.json()
-  if (!data.success) throw new Error('API returned error')
-
-  return mapStatusDataToConfig(data.data)
+  const data = await getStatus()
+  return mapStatusDataToConfig(data as StatusApiResponse['data'])
 }
 
 // Preload image and return cleanup function
@@ -158,6 +155,8 @@ export function useSystemConfig(options: UseSystemConfigOptions = {}) {
       const newConfig = await fetchSystemConfig()
       setConfig(newConfig)
     } catch (error) {
+      if (isAxiosError(error) && error.response?.status === 404) return
+
       // eslint-disable-next-line no-console
       console.error('Failed to load system config:', error)
     } finally {

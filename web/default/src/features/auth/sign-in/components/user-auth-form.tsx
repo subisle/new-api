@@ -329,10 +329,12 @@ export function UserAuthForm({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className={cn('grid gap-4', className)}
+        className={cn('grid gap-5', className)}
         {...props}
       >
-        {hasAlternativeLogin && alternativeLoginMethods}
+        {hasAlternativeLogin && (
+          <div className='order-2'>{alternativeLoginMethods}</div>
+        )}
 
         {passwordLoginEnabled && (
           <>
@@ -346,6 +348,7 @@ export function UserAuthForm({
                   <FormControl>
                     <Input
                       placeholder={t('Enter your username or email')}
+                      className='h-11 rounded-xl px-3.5'
                       {...field}
                     />
                   </FormControl>
@@ -364,6 +367,7 @@ export function UserAuthForm({
                   <FormControl>
                     <PasswordInput
                       placeholder={t('Enter password')}
+                      className='[&_input]:h-11 [&_input]:rounded-xl [&_input]:px-3.5'
                       {...field}
                     />
                   </FormControl>
@@ -381,7 +385,7 @@ export function UserAuthForm({
             {/* Submit Button */}
             <Button
               type='submit'
-              className='mt-2 w-full justify-center gap-2'
+              className='mt-1 h-11 w-full justify-center gap-2 rounded-xl'
               disabled={isLoading || (requiresLegalConsent && !agreedToLegal)}
             >
               {isLoading ? <Loader2 className='animate-spin' /> : <LogIn />}
@@ -404,10 +408,12 @@ export function UserAuthForm({
           status={status}
           checked={agreedToLegal}
           onCheckedChange={setAgreedToLegal}
-          className='mt-1'
+          className='mt-0'
         />
 
-        {!hasAlternativeLogin && alternativeLoginMethods}
+        {!hasAlternativeLogin && (
+          <div className='order-2'>{alternativeLoginMethods}</div>
+        )}
       </form>
 
       {hasWeChatLogin && (

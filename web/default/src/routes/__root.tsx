@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useEffect } from 'react'
+import { isAxiosError } from 'axios'
 import { type QueryClient } from '@tanstack/react-query'
 import {
   createRootRouteWithContext,
@@ -109,6 +110,8 @@ export const Route = createRootRouteWithContext<{
     // 只检查 setup 状态（如果需要）
     if (needsSetupCheck) {
       const status = await getSetupStatus().catch((error) => {
+        if (isAxiosError(error) && error.response?.status === 404) return null
+
         if (import.meta.env.DEV) {
           // eslint-disable-next-line no-console
           console.warn('[root.beforeLoad] setup status check failed', error)

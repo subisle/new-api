@@ -30,7 +30,7 @@ const STORAGE_KEY = 'home_page_content'
  */
 export function useHomePageContent(): HomePageContentResult {
   const [content, setContent] = useState<string>('')
-  const [isLoaded, setIsLoaded] = useState(false)
+  const [isLoaded, setIsLoaded] = useState(true)
 
   useEffect(() => {
     let mounted = true
@@ -38,8 +38,10 @@ export function useHomePageContent(): HomePageContentResult {
     const loadContent = async () => {
       // Load from localStorage first for immediate display
       const cached = localStorage.getItem(STORAGE_KEY)
-      if (cached && mounted) {
+      if (cached?.trim() && mounted) {
         setContent(cached)
+      } else {
+        localStorage.removeItem(STORAGE_KEY)
       }
 
       try {
@@ -48,7 +50,7 @@ export function useHomePageContent(): HomePageContentResult {
 
         if (!mounted) return
 
-        if (success && data) {
+        if (success && data?.trim()) {
           setContent(data)
           localStorage.setItem(STORAGE_KEY, data)
         } else {
@@ -58,6 +60,8 @@ export function useHomePageContent(): HomePageContentResult {
         }
       } catch (error) {
         if (!mounted) return
+        setContent('')
+        localStorage.removeItem(STORAGE_KEY)
         // eslint-disable-next-line no-console
         console.error('Failed to load home page content:', error)
         toast.error(i18next.t('Failed to load home page content'))
