@@ -16,17 +16,17 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import type { HTMLAttributes } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import type { SystemStatus } from '../types'
 
-interface LegalConsentProps {
+interface LegalConsentProps extends HTMLAttributes<HTMLDivElement> {
   status: SystemStatus | null
   checked: boolean
   onCheckedChange: (nextValue: boolean) => void
-  className?: string
 }
 
 export function LegalConsent({
@@ -34,6 +34,7 @@ export function LegalConsent({
   checked,
   onCheckedChange,
   className,
+  ...props
 }: LegalConsentProps) {
   const { t } = useTranslation()
   const hasUserAgreement = Boolean(status?.user_agreement_enabled)
@@ -53,6 +54,7 @@ export function LegalConsent({
         'border-border/60 bg-muted/40 flex items-start gap-3 rounded-md border p-3',
         className
       )}
+      {...props}
     >
       <Checkbox
         id='legal-consent'

@@ -33,6 +33,7 @@ type RankedModel struct {
 	Rank         int     `json:"rank"`
 	PreviousRank *int    `json:"previous_rank,omitempty"`
 	ModelName    string  `json:"model_name"`
+	HasPricing   bool    `json:"has_pricing"`
 	Vendor       string  `json:"vendor"`
 	VendorIcon   string  `json:"vendor_icon,omitempty"`
 	Category     string  `json:"category"`
@@ -54,6 +55,7 @@ type RankedVendor struct {
 
 type RankingMover struct {
 	ModelName   string  `json:"model_name"`
+	HasPricing  bool    `json:"has_pricing"`
 	Vendor      string  `json:"vendor"`
 	VendorIcon  string  `json:"vendor_icon,omitempty"`
 	RankDelta   int     `json:"rank_delta"`
@@ -256,16 +258,21 @@ func buildRankingModelMeta() map[string]rankingModelMeta {
 }
 
 func modelMeta(modelName string, meta map[string]rankingModelMeta) rankingModelMeta {
+	item, _ := modelMetaWithPresence(modelName, meta)
+	return item
+}
+
+func modelMetaWithPresence(modelName string, meta map[string]rankingModelMeta) (rankingModelMeta, bool) {
 	if item, ok := meta[modelName]; ok && item.vendor != "" {
-		return item
+		return item, true
 	}
-	return rankingModelMeta{vendor: rankingUnknownVendor}
+	return rankingModelMeta{vendor: rankingUnknownVendor}, false
 }
 
 func buildRankedModels(totals []model.RankingQuotaTotal, totalTokens int64, previousRanks map[string]int, previousTokens map[string]int64, meta map[string]rankingModelMeta, showGrowth bool) []RankedModel {
 	rows := make([]RankedModel, 0, len(totals))
 	for idx, item := range totals {
-		modelMeta := modelMeta(item.ModelName, meta)
+		modelMeta, hasPricing := modelMetaWithPresence(item.ModelName, meta)
 		var previousRank *int
 		if rank, ok := previousRanks[item.ModelName]; ok {
 			rankCopy := rank
@@ -279,6 +286,7 @@ func buildRankedModels(totals []model.RankingQuotaTotal, totalTokens int64, prev
 			Rank:         idx + 1,
 			PreviousRank: previousRank,
 			ModelName:    item.ModelName,
+			HasPricing:   hasPricing,
 			Vendor:       modelMeta.vendor,
 			VendorIcon:   modelMeta.vendorIcon,
 			Category:     "all",
@@ -486,6 +494,7 @@ func buildRankingMovers(models []RankedModel) ([]RankingMover, []RankingMover) {
 		}
 		row := RankingMover{
 			ModelName:   item.ModelName,
+			HasPricing:  item.HasPricing,
 			Vendor:      item.Vendor,
 			VendorIcon:  item.VendorIcon,
 			RankDelta:   delta,

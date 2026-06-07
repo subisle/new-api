@@ -24,6 +24,17 @@ For commercial licensing, please contact support@quantumnous.com
 export const DEFAULT_SYSTEM_NAME = 'New API'
 export const DEFAULT_LOGO = '/logo.png'
 
+const LEGACY_DEFAULT_LOGOS = new Set([
+  '/logo.png',
+  'https://cloudflareimg.cdn.sn/i/6a2495af14853_1780782511.webp',
+])
+
+export function normalizeSystemLogo(logo: unknown) {
+  if (typeof logo !== 'string') return DEFAULT_LOGO
+  const trimmed = logo.trim()
+  return !trimmed || LEGACY_DEFAULT_LOGOS.has(trimmed) ? DEFAULT_LOGO : trimmed
+}
+
 // LocalStorage Keys
 export const STORAGE_KEYS = {
   SYSTEM_NAME: 'system_name',

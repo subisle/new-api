@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNotificationStore } from '@/stores/notification-store'
 import { getNotice } from '@/lib/api'
@@ -57,15 +57,67 @@ function getAnnouncementKey(item: Record<string, unknown>): string {
   return `hash:${hashString(fingerprint)}`
 }
 
+const NOTIFICATION_AUTO_OPENED_KEY = 'notification-popover-auto-opened'
+let notificationAutoOpenedInMemory = false
+
+function hasNotificationAutoOpened() {
+  if (notificationAutoOpenedInMemory) return true
+  if (typeof window === 'undefined') return true
+
+  try {
+    return (
+      window.sessionStorage.getItem(NOTIFICATION_AUTO_OPENED_KEY) === 'true'
+    )
+  } catch {
+    return notificationAutoOpenedInMemory
+  }
+}
+
+function markNotificationAutoOpened() {
+  notificationAutoOpenedInMemory = true
+
+  if (typeof window === 'undefined') return
+
+  try {
+    window.sessionStorage.setItem(NOTIFICATION_AUTO_OPENED_KEY, 'true')
+  } catch {
+    // sessionStorage may be unavailable in restricted browsing contexts.
+  }
+}
+
+function shouldAutoOpenNotification(defaultOpen?: boolean, autoOpen = false) {
+  if (defaultOpen !== undefined) return defaultOpen
+  if (!autoOpen) return false
+  return !hasNotificationAutoOpened()
+}
+
 /**
  * Hook to manage notifications (Notice + Announcements)
  * Provides unread counts and read status management
  */
-export function useNotifications() {
-  const [popoverOpen, setPopoverOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'notice' | 'announcements'>(
-    'notice'
+type UseNotificationsOptions = {
+  autoOpen?: boolean
+  defaultOpen?: boolean
+  defaultActiveTab?: 'notice' | 'announcements'
+}
+
+export function useNotifications({
+  autoOpen = false,
+  defaultOpen,
+  defaultActiveTab,
+}: UseNotificationsOptions = {}) {
+  const [popoverOpen, setPopoverOpen] = useState(() =>
+    shouldAutoOpenNotification(defaultOpen, autoOpen)
   )
+  const [activeTab, setActiveTab] = useState<'notice' | 'announcements'>(
+    defaultActiveTab ?? 'notice'
+  )
+
+  useEffect(() => {
+    if (autoOpen && defaultOpen === undefined && popoverOpen) {
+      markNotificationAutoOpened()
+    }
+  }, [autoOpen, defaultOpen, popoverOpen])
 
   // Fetch Notice from API
   const {

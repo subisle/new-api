@@ -30,6 +30,10 @@ import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth-store'
 import { getStatus } from '@/lib/api'
 import { installBuildMetadata } from '@/lib/build-metadata'
+import {
+  DEFAULT_SYSTEM_NAME,
+  normalizeSystemLogo,
+} from '@/lib/constants'
 import '@/lib/dayjs'
 import { applyFaviconToDom } from '@/lib/dom-utils'
 import { initializeFrontendCache } from '@/lib/frontend-cache'
@@ -117,6 +121,14 @@ const rootElement = document.getElementById('root')!
 ;(function initSystemBranding() {
   try {
     if (typeof window === 'undefined' || typeof document === 'undefined') return
+    const normalizeSystemName = (name: unknown) => {
+      if (typeof name !== 'string') return DEFAULT_SYSTEM_NAME
+      const trimmed = name.trim()
+      return !trimmed || trimmed === 'New API' ? DEFAULT_SYSTEM_NAME : trimmed
+    }
+    const normalizeLogo = (logo: unknown) => {
+      return normalizeSystemLogo(logo)
+    }
     const apply = (name: string) => {
       document.title = name
       const metaTitle = document.querySelector(
@@ -129,8 +141,8 @@ const rootElement = document.getElementById('root')!
       const saved = localStorage.getItem('status')
       if (saved) {
         const s = JSON.parse(saved)
-        if (s?.system_name) apply(s.system_name)
-        if (s?.logo) applyFaviconToDom(s.logo)
+        apply(normalizeSystemName(s?.system_name))
+        applyFaviconToDom(normalizeLogo(s?.logo))
       }
     } catch {
       /* empty */
@@ -138,15 +150,15 @@ const rootElement = document.getElementById('root')!
     // Background refresh
     getStatus()
       .then((s) => {
-        if (s?.system_name) {
-          apply(s.system_name as string)
+        if (s) {
+          apply(normalizeSystemName(s.system_name))
           try {
             localStorage.setItem('status', JSON.stringify(s))
           } catch {
             /* empty */
           }
         }
-        if (s?.logo) applyFaviconToDom(s.logo as string)
+        applyFaviconToDom(normalizeLogo(s?.logo))
       })
       .catch(() => {
         /* empty */

@@ -31,6 +31,7 @@ interface TurnstileProps {
   onVerify: (token: string) => void
   onExpire?: () => void
   className?: string
+  theme?: 'auto' | 'light' | 'dark'
 }
 
 export function Turnstile({
@@ -38,6 +39,7 @@ export function Turnstile({
   onVerify,
   onExpire,
   className,
+  theme = 'auto',
 }: TurnstileProps) {
   const ref = useRef<HTMLDivElement | null>(null)
 
@@ -47,6 +49,7 @@ export function Turnstile({
       try {
         window.turnstile.render(ref.current, {
           sitekey: siteKey,
+          theme,
           callback: (token: string) => onVerify(token),
           'error-callback': () => onExpire?.(),
           'expired-callback': () => onExpire?.(),
@@ -70,7 +73,7 @@ export function Turnstile({
     s.defer = true
     s.onload = () => render()
     document.head.appendChild(s)
-  }, [siteKey, onVerify, onExpire])
+  }, [siteKey, onVerify, onExpire, theme])
 
   return <div ref={ref} className={className} />
 }

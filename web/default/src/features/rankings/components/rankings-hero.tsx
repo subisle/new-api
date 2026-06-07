@@ -58,21 +58,20 @@ export function RankingsHero(props: RankingsHeroProps) {
 
       {/* Underline tabs for period — clean and unobtrusive. */}
       <div
-        role='tablist'
+        role='group'
         aria-label={t('Period')}
-        className='border-border/60 flex items-center border-b'
+        className='border-border/60 flex flex-wrap items-center gap-x-1 gap-y-1 border-b'
       >
         {PERIODS.map((p) => {
           const isActive = props.period === p.id
           return (
             <button
               key={p.id}
-              role='tab'
               type='button'
-              aria-selected={isActive}
+              aria-pressed={isActive}
               onClick={() => props.onPeriodChange(p.id)}
               className={cn(
-                'focus-visible:ring-ring/40 relative -mb-px rounded-sm px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none',
+                'focus-visible:ring-ring/40 relative -mb-px shrink-0 rounded-sm px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none',
                 isActive
                   ? 'text-foreground'
                   : 'text-muted-foreground hover:text-foreground'

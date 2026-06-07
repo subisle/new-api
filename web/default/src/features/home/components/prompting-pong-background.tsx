@@ -19,8 +19,6 @@ For commercial licensing, please contact support@quantumnous.com
 import { useEffect, useRef, type RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/context/theme-provider'
-import { useNotifications } from '@/hooks/use-notifications'
-import { HomeNavHeader } from './home-nav-header'
 
 interface Pixel {
   x: number
@@ -51,6 +49,16 @@ interface CollisionRect {
   y: number
   width: number
   height: number
+}
+
+type PromptingIsAllYouNeedProps = {
+  className?: string
+  showPixelText?: boolean
+  collisionRootRef?: RefObject<HTMLElement | null>
+  collisionSelector?: string
+  collisionPadding?: number
+  collisionRefreshMs?: number
+  startDelayMs?: number
 }
 
 function readCssColor(
@@ -110,28 +118,6 @@ function resolveBallRectCollision(ball: Ball, rect: CollisionRect) {
   }
 }
 
-export function PersonalHome() {
-  const notifications = useNotifications({ autoOpen: true })
-
-  return (
-    <main className='bg-background text-foreground min-h-screen overflow-x-hidden'>
-      <HomeNavHeader notifications={notifications} />
-
-      <section className='bg-background relative h-screen min-h-[560px] overflow-hidden'>
-        <PromptingIsAllYouNeed />
-      </section>
-    </main>
-  )
-}
-type PromptingIsAllYouNeedProps = {
-  className?: string
-  showPixelText?: boolean
-  collisionRootRef?: RefObject<HTMLElement | null>
-  collisionSelector?: string
-  collisionPadding?: number
-  collisionRefreshMs?: number
-}
-
 export function PromptingIsAllYouNeed({
   className,
   showPixelText = true,
@@ -139,6 +125,7 @@ export function PromptingIsAllYouNeed({
   collisionSelector,
   collisionPadding = 6,
   collisionRefreshMs = 120,
+  startDelayMs = 0,
 }: PromptingIsAllYouNeedProps = {}) {
   const { t, i18n } = useTranslation()
   const { resolvedTheme } = useTheme()
@@ -167,6 +154,7 @@ export function PromptingIsAllYouNeed({
     if (!ctx) return
 
     let animationFrameId = 0
+    let startTimerId = 0
     const lines = showPixelText
       ? [t('SUBISLE'), t('Industry-leading AI relay')]
       : []
@@ -414,28 +402,6 @@ export function PromptingIsAllYouNeed({
       ]
     }
 
-    const resizeCanvas = () => {
-      scaleRef.current = Math.min(
-        window.innerWidth / 1000,
-        window.innerHeight / 1000
-      )
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
-      initializeGame()
-      collisionRectsRef.current = getCollisionRects()
-    }
-
-    const getCanvasColors = () => {
-      const styles = getComputedStyle(document.documentElement)
-      return {
-        background: readCssColor(styles, '--background', '#000000'),
-        foreground: readCssColor(styles, '--foreground', '#ffffff'),
-        hit: readCssColor(styles, '--muted-foreground', '#333333'),
-        paddle: readCssColor(styles, '--primary', '#ffffff'),
-        ball: readCssColor(styles, '--foreground', '#ffffff'),
-      }
-    }
-
     const getCollisionRects = () => {
       if (!collisionSelector) return []
 
@@ -466,6 +432,28 @@ export function PromptingIsAllYouNeed({
     const refreshCollisionRects = () => {
       collisionRectsRef.current = getCollisionRects()
       lastCollisionRefreshRef.current = performance.now()
+    }
+
+    const resizeCanvas = () => {
+      scaleRef.current = Math.min(
+        window.innerWidth / 1000,
+        window.innerHeight / 1000
+      )
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+      initializeGame()
+      collisionRectsRef.current = getCollisionRects()
+    }
+
+    const getCanvasColors = () => {
+      const styles = getComputedStyle(document.documentElement)
+      return {
+        background: readCssColor(styles, '--background', '#000000'),
+        foreground: readCssColor(styles, '--foreground', '#ffffff'),
+        hit: readCssColor(styles, '--muted-foreground', '#333333'),
+        paddle: readCssColor(styles, '--primary', '#ffffff'),
+        ball: readCssColor(styles, '--foreground', '#ffffff'),
+      }
     }
 
     const updateGame = () => {
@@ -652,12 +640,23 @@ export function PromptingIsAllYouNeed({
       animationFrameId = requestAnimationFrame(gameLoop)
     }
 
-    resizeCanvas()
-    window.addEventListener('resize', resizeCanvas)
-    window.addEventListener('scroll', refreshCollisionRects, true)
-    gameLoop()
+    const startGame = () => {
+      resizeCanvas()
+      window.addEventListener('resize', resizeCanvas)
+      window.addEventListener('scroll', refreshCollisionRects, true)
+      gameLoop()
+    }
+
+    if (startDelayMs > 0) {
+      startTimerId = window.setTimeout(startGame, startDelayMs)
+    } else {
+      startGame()
+    }
 
     return () => {
+      if (startTimerId) {
+        window.clearTimeout(startTimerId)
+      }
       window.removeEventListener('resize', resizeCanvas)
       window.removeEventListener('scroll', refreshCollisionRects, true)
       cancelAnimationFrame(animationFrameId)
@@ -670,6 +669,7 @@ export function PromptingIsAllYouNeed({
     i18n.language,
     resolvedTheme,
     showPixelText,
+    startDelayMs,
     t,
   ])
 

@@ -24,6 +24,7 @@ import { ArrowRight, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { useTheme } from '@/context/theme-provider'
 import { useCountdown } from '@/hooks/use-countdown'
 import { Button } from '@/components/ui/button'
 import {
@@ -48,6 +49,7 @@ export function ForgotPasswordForm({
   ...props
 }: React.HTMLAttributes<HTMLFormElement>) {
   const { t } = useTranslation()
+  const { resolvedTheme } = useTheme()
   const [isLoading, setIsLoading] = useState(false)
 
   const {
@@ -122,10 +124,12 @@ export function ForgotPasswordForm({
         </Button>
 
         {isTurnstileEnabled && (
-          <div className='mt-2'>
+          <div className='mt-2 flex justify-center'>
             <Turnstile
+              key={resolvedTheme}
               siteKey={turnstileSiteKey}
               onVerify={setTurnstileToken}
+              theme={resolvedTheme}
             />
           </div>
         )}

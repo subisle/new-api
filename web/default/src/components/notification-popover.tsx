@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { TFunction } from 'i18next'
-import { Bell, Megaphone } from 'lucide-react'
+import { Bell, Megaphone, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getAnnouncementColorClass } from '@/lib/colors'
 import { formatDateTimeObject } from '@/lib/time'
@@ -39,7 +39,6 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
@@ -49,6 +48,9 @@ interface AnnouncementItem {
   extra?: string
   publishDate?: string | Date
 }
+
+type NotificationPopoverSize = 'default' | 'large'
+type NotificationPopoverLayout = 'default' | 'horizontal'
 
 interface NotificationPopoverProps {
   open: boolean
@@ -60,6 +62,8 @@ interface NotificationPopoverProps {
   announcements: AnnouncementItem[]
   loading: boolean
   className?: string
+  size?: NotificationPopoverSize
+  layout?: NotificationPopoverLayout
 }
 
 /**
@@ -154,6 +158,44 @@ function EmptyState({
   )
 }
 
+function NotificationContentArea({
+  children,
+  size = 'default',
+}: {
+  children: React.ReactNode
+  size?: NotificationPopoverSize
+}) {
+  return (
+    <div
+      className={cn(
+        'overflow-y-auto pr-2',
+        size === 'large' ? 'max-h-[min(46vh,24rem)]' : 'max-h-[min(42vh,22rem)]'
+      )}
+    >
+      {children}
+    </div>
+  )
+}
+
+function NotificationItem({
+  icon,
+  children,
+}: {
+  icon: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <div className='py-2.5'>
+      <div className='flex items-start gap-2.5'>
+        {icon}
+        <div className='flex min-w-0 flex-1 flex-col gap-1.5 text-sm leading-5'>
+          {children}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /**
  * Notice tab content
  */
@@ -161,10 +203,12 @@ function NoticeContent({
   notice,
   loading,
   t,
+  size = 'default',
 }: {
   notice: string
   loading: boolean
   t: TFunction
+  size?: NotificationPopoverSize
 }) {
   if (loading) {
     return (
@@ -183,9 +227,15 @@ function NoticeContent({
   }
 
   return (
-    <ScrollArea className='h-[min(52vh,28rem)] pr-3'>
-      <Markdown>{notice}</Markdown>
-    </ScrollArea>
+    <NotificationContentArea size={size}>
+      <NotificationItem
+        icon={
+          <span className='bg-primary mt-1.5 inline-block size-2 shrink-0 rounded-full' />
+        }
+      >
+        <Markdown>{notice}</Markdown>
+      </NotificationItem>
+    </NotificationContentArea>
   )
 }
 
@@ -196,10 +246,12 @@ function AnnouncementsContent({
   announcements,
   loading,
   t,
+  size = 'default',
 }: {
   announcements: AnnouncementItem[]
   loading: boolean
   t: TFunction
+  size?: NotificationPopoverSize
 }) {
   if (loading) {
     return (
@@ -218,7 +270,7 @@ function AnnouncementsContent({
   }
 
   return (
-    <ScrollArea className='h-[min(52vh,28rem)] pr-3'>
+    <NotificationContentArea size={size}>
       <div className='flex flex-col'>
         {announcements.map((item, idx) => {
           const publishDate = item.publishDate
@@ -233,35 +285,28 @@ function AnnouncementsContent({
 
           return (
             <div key={idx}>
-              <div className='py-3'>
-                <div className='flex items-start gap-3'>
-                  <AnnouncementDot type={item.type} />
-                  <div className='flex min-w-0 flex-1 flex-col gap-2'>
-                    <div className='text-sm'>
-                      <Markdown>{item.content || ''}</Markdown>
-                    </div>
+              <NotificationItem icon={<AnnouncementDot type={item.type} />}>
+                <Markdown>{item.content || ''}</Markdown>
 
-                    {item.extra ? (
-                      <div className='text-muted-foreground text-xs'>
-                        <Markdown>{item.extra}</Markdown>
-                      </div>
-                    ) : null}
-
-                    {absoluteTime ? (
-                      <div className='text-muted-foreground text-xs'>
-                        {relativeTime ? `${relativeTime} • ` : null}
-                        {absoluteTime}
-                      </div>
-                    ) : null}
+                {item.extra ? (
+                  <div className='text-muted-foreground text-xs leading-5'>
+                    <Markdown>{item.extra}</Markdown>
                   </div>
-                </div>
-              </div>
+                ) : null}
+
+                {absoluteTime ? (
+                  <div className='text-muted-foreground text-xs leading-5'>
+                    {relativeTime ? `${relativeTime} • ` : null}
+                    {absoluteTime}
+                  </div>
+                ) : null}
+              </NotificationItem>
               {idx < announcements.length - 1 ? <Separator /> : null}
             </div>
           )
         })}
       </div>
-    </ScrollArea>
+    </NotificationContentArea>
   )
 }
 
@@ -278,8 +323,13 @@ export function NotificationPopover({
   announcements,
   loading,
   className,
+  size = 'default',
+  layout = 'default',
 }: NotificationPopoverProps) {
   const { t } = useTranslation()
+  const isLarge = size === 'large'
+  const isHorizontal = layout === 'horizontal'
+
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger
@@ -304,50 +354,103 @@ export function NotificationPopover({
       </PopoverTrigger>
 
       <PopoverContent
-        align='end'
-        sideOffset={8}
-        className='w-[min(26rem,calc(100vw-1rem))] gap-3 p-3'
+        align={isHorizontal ? 'center' : 'end'}
+        sideOffset={isHorizontal ? 12 : 8}
+        positionerClassName={
+          isHorizontal
+            ? '!fixed !inset-x-0 !top-32 !transform-none flex justify-center px-3'
+            : undefined
+        }
+        className={cn(
+          'gap-2.5 p-2.5 shadow-xl',
+          isHorizontal && 'sm:gap-3 sm:p-3',
+          isLarge
+            ? isHorizontal
+              ? 'w-[min(40rem,calc(100vw-1.5rem))]'
+              : 'w-[min(34rem,calc(100vw-1rem))]'
+            : 'w-[min(24rem,calc(100vw-1rem))]'
+        )}
       >
-        <PopoverHeader className='gap-1 px-1'>
-          <PopoverTitle>{t('System Announcements')}</PopoverTitle>
-          <p className='text-muted-foreground text-xs'>
-            {t('Latest platform updates and notices')}
-          </p>
-        </PopoverHeader>
+        <div className='flex items-start justify-between gap-3 px-1'>
+          <PopoverHeader className='min-w-0 gap-1'>
+            <PopoverTitle>{t('System Announcements')}</PopoverTitle>
+            <p className='text-muted-foreground text-xs'>
+              {t('Latest platform updates and notices')}
+            </p>
+          </PopoverHeader>
+          <Button
+            type='button'
+            size='icon-sm'
+            variant='ghost'
+            className='-me-1 -mt-1'
+            onClick={() => onOpenChange(false)}
+            aria-label={t('Close')}
+          >
+            <X className='size-4' aria-hidden='true' />
+          </Button>
+        </div>
 
         <Tabs
           value={activeTab}
           onValueChange={onTabChange as (value: string) => void}
+          className={cn(
+            isHorizontal &&
+              'sm:grid sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:items-start sm:gap-3'
+          )}
         >
-          <TabsList className='grid w-full grid-cols-2'>
-            <TabsTrigger value='notice' className='gap-1.5'>
+          <TabsList
+            className={cn(
+              'grid w-full grid-cols-2',
+              isHorizontal &&
+                'sm:flex sm:h-auto sm:flex-col sm:items-stretch sm:justify-start'
+            )}
+          >
+            <TabsTrigger
+              value='notice'
+              className={cn(
+                'gap-1.5',
+                isHorizontal && 'sm:h-8 sm:flex-none sm:justify-start sm:px-2.5'
+              )}
+            >
               <Bell className='size-3.5' />
               {t('Notice')}
             </TabsTrigger>
-            <TabsTrigger value='announcements' className='gap-1.5'>
+            <TabsTrigger
+              value='announcements'
+              className={cn(
+                'gap-1.5',
+                isHorizontal && 'sm:h-8 sm:flex-none sm:justify-start sm:px-2.5'
+              )}
+            >
               <Megaphone className='size-3.5' />
               {t('Timeline')}
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value='notice' className='mt-2'>
-            <NoticeContent notice={notice} loading={loading} t={t} />
+          <TabsContent
+            value='notice'
+            className={cn('mt-2', isHorizontal && 'sm:mt-0 sm:min-w-0')}
+          >
+            <NoticeContent
+              notice={notice}
+              loading={loading}
+              t={t}
+              size={size}
+            />
           </TabsContent>
 
-          <TabsContent value='announcements' className='mt-2'>
+          <TabsContent
+            value='announcements'
+            className={cn('mt-2', isHorizontal && 'sm:mt-0 sm:min-w-0')}
+          >
             <AnnouncementsContent
               announcements={announcements}
               loading={loading}
               t={t}
+              size={size}
             />
           </TabsContent>
         </Tabs>
-
-        <div className='flex justify-end'>
-          <Button size='sm' onClick={() => onOpenChange(false)}>
-            {t('Close')}
-          </Button>
-        </div>
       </PopoverContent>
     </Popover>
   )

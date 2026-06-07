@@ -18,9 +18,11 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
+import { useNotifications } from '@/hooks/use-notifications'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PublicLayout } from '@/components/layout'
 import { PageTransition } from '@/components/page-transition'
+import { HomeNavHeader } from '@/features/home/components/home-nav-header'
 import {
   MarketShareSection,
   ModelsSection,
@@ -36,6 +38,7 @@ export function Rankings() {
   const { t } = useTranslation()
   const search = useSearch({ from: '/rankings/' })
   const navigate = useNavigate()
+  const notifications = useNotifications()
 
   const period: RankingPeriod = VALID_PERIODS.includes(
     search.period as RankingPeriod
@@ -54,7 +57,11 @@ export function Rankings() {
   }
 
   return (
-    <PublicLayout showMainContainer={false}>
+    <PublicLayout
+      showMainContainer={false}
+      headerProps={{ showNavigation: false }}
+    >
+      <HomeNavHeader notifications={notifications} consoleScrollEffect />
       <div className='relative'>
         <div
           aria-hidden
@@ -71,19 +78,13 @@ export function Rankings() {
               'linear-gradient(to bottom, black 40%, transparent 100%)',
           }}
         />
-        <PageTransition className='relative mx-auto w-full max-w-[1280px] space-y-8 px-3 pt-16 pb-10 sm:px-6 sm:pt-20 sm:pb-12 xl:px-8'>
+        <PageTransition className='relative mx-auto w-full max-w-[1280px] space-y-8 px-3 pt-40 pb-10 sm:px-6 sm:pt-40 sm:pb-12 lg:pt-32 xl:px-8'>
           <RankingsHero period={period} onPeriodChange={handlePeriodChange} />
 
           {rankingsQuery.isLoading ? (
             <RankingsLoading />
           ) : !snapshot ? (
-            <RankingsError
-              message={
-                rankingsQuery.error instanceof Error
-                  ? rankingsQuery.error.message
-                  : t('Unable to load rankings data')
-              }
-            />
+            <RankingsError message={t('Unable to load rankings data')} />
           ) : (
             <>
               <ModelsSection
@@ -123,7 +124,10 @@ function RankingsLoading() {
 function RankingsError(props: { message: string }) {
   const { t } = useTranslation()
   return (
-    <div className='bg-card rounded-xl border border-dashed px-6 py-12 text-center'>
+    <div
+      role='alert'
+      className='bg-card rounded-xl border border-dashed px-6 py-12 text-center'
+    >
       <h2 className='text-foreground text-base font-semibold'>
         {t('Unable to load rankings')}
       </h2>

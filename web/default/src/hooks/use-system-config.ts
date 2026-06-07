@@ -25,7 +25,11 @@ import {
   type SystemConfig,
   DEFAULT_CURRENCY_CONFIG,
 } from '@/stores/system-config-store'
-import { DEFAULT_SYSTEM_NAME, DEFAULT_LOGO } from '@/lib/constants'
+import {
+  DEFAULT_SYSTEM_NAME,
+  DEFAULT_LOGO,
+  normalizeSystemLogo,
+} from '@/lib/constants'
 import { applyFaviconToDom } from '@/lib/dom-utils'
 import { getStatus } from '@/lib/api'
 
@@ -93,9 +97,15 @@ export function mapStatusDataToConfig(
     ),
   }
 
+  const systemName = data.system_name?.trim()
+  const logo = data.logo?.trim()
+
   return {
-    systemName: data.system_name || DEFAULT_SYSTEM_NAME,
-    logo: data.logo || DEFAULT_LOGO,
+    systemName:
+      !systemName || systemName === 'New API'
+        ? DEFAULT_SYSTEM_NAME
+        : systemName,
+    logo: normalizeSystemLogo(logo),
     footerHtml: data.footer_html,
     demoSiteEnabled: data.demo_site_enabled,
     displayTokenStatEnabled: data.display_token_stat_enabled,
@@ -170,7 +180,7 @@ export function useSystemConfig(options: UseSystemConfigOptions = {}) {
 
   // Preload logo image when URL changes
   useEffect(() => {
-    const { logo } = config
+    const logo = normalizeSystemLogo(config.logo)
 
     // Skip if logo is already loaded
     if (!logo || logo === loadedLogoUrl) return
@@ -191,12 +201,13 @@ export function useSystemConfig(options: UseSystemConfigOptions = {}) {
         setLoadedLogoUrl(logo)
       }
     )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config.logo, loadedLogoUrl, setLoadedLogoUrl])
 
   return {
     ...config,
+    logo: normalizeSystemLogo(config.logo),
     loading,
-    logoLoaded: config.logo === loadedLogoUrl && !!loadedLogoUrl,
+    logoLoaded:
+      normalizeSystemLogo(config.logo) === loadedLogoUrl && !!loadedLogoUrl,
   }
 }

@@ -86,6 +86,7 @@ function ModelList(props: {
           <div className='min-w-0 flex-1'>
             <ModelLink
               modelName={row.model_name}
+              disabled={row.has_pricing === false}
               className={
                 compact
                   ? 'text-foreground block truncate font-mono text-xs font-medium'
@@ -101,7 +102,7 @@ function ModelList(props: {
                   : 'text-muted-foreground/80 truncate text-xs italic'
               }
             >
-              by{' '}
+              {t('by')}{' '}
               <VendorLink vendor={row.vendor}>
                 {row.vendor.toLowerCase()}
               </VendorLink>
@@ -125,10 +126,22 @@ function ModelList(props: {
                 </>
               )}
             </div>
-            <GrowthText
-              value={row.growth_pct}
-              className={compact ? 'text-[10px]' : 'text-[11px]'}
-            />
+            {row.previous_rank == null ? (
+              <span
+                className={
+                  compact
+                    ? 'text-primary font-mono text-[10px] font-semibold tabular-nums'
+                    : 'text-primary font-mono text-[11px] font-semibold tabular-nums'
+                }
+              >
+                {t('New')}
+              </span>
+            ) : (
+              <GrowthText
+                value={row.growth_pct}
+                className={compact ? 'text-[10px]' : 'text-[11px]'}
+              />
+            )}
           </div>
         </li>
       ))}

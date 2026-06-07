@@ -23,6 +23,7 @@ import { ArrowLeft, Code2, HeartPulse, Info, Timer } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getLobeIcon } from '@/lib/lobe-icon'
 import { cn } from '@/lib/utils'
+import { useNotifications } from '@/hooks/use-notifications'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -45,6 +46,7 @@ import { CopyButton } from '@/components/copy-button'
 import { sideDrawerContentClassName } from '@/components/drawer-layout'
 import { GroupBadge } from '@/components/group-badge'
 import { PublicLayout } from '@/components/layout'
+import { HomeNavHeader } from '@/features/home/components/home-nav-header'
 import { getPerfMetrics } from '@/features/performance-metrics/api'
 import {
   formatLatency,
@@ -269,9 +271,7 @@ function ModelHeader(props: { model: PricingModel }) {
   const { t } = useTranslation()
   const model = props.model
   const modelIconKey = model.icon || model.vendor_icon
-  const modelIcon = modelIconKey
-    ? getLobeIcon(modelIconKey, 20)
-    : null
+  const modelIcon = modelIconKey ? getLobeIcon(modelIconKey, 20) : null
   const description = model.description || model.vendor_description || null
   const tags = parseTags(model.tags)
   const isSpecialExpression =
@@ -1029,6 +1029,7 @@ export function ModelDetails() {
   const { modelId } = useParams({ from: '/pricing/$modelId/' })
   const search = useSearch({ from: '/pricing/$modelId/' })
   const navigate = useNavigate()
+  const notifications = useNotifications()
 
   const {
     models,
@@ -1055,8 +1056,12 @@ export function ModelDetails() {
 
   if (isLoading) {
     return (
-      <PublicLayout>
-        <div className='mx-auto max-w-5xl px-4 sm:px-6'>
+      <PublicLayout
+        showMainContainer={false}
+        headerProps={{ showNavigation: false }}
+      >
+        <HomeNavHeader notifications={notifications} consoleScrollEffect />
+        <main className='mx-auto w-full max-w-5xl px-4 pt-40 pb-10 sm:px-6 sm:pt-40 sm:pb-12 lg:pt-32'>
           <Skeleton className='mb-4 h-5 w-16' />
           <div className='space-y-2'>
             <Skeleton className='h-7 w-64' />
@@ -1073,15 +1078,19 @@ export function ModelDetails() {
               <Skeleton key={i} className='h-24 w-full' />
             ))}
           </div>
-        </div>
+        </main>
       </PublicLayout>
     )
   }
 
   if (!model) {
     return (
-      <PublicLayout>
-        <div className='mx-auto max-w-2xl px-4 text-center sm:px-6'>
+      <PublicLayout
+        showMainContainer={false}
+        headerProps={{ showNavigation: false }}
+      >
+        <HomeNavHeader notifications={notifications} consoleScrollEffect />
+        <main className='mx-auto w-full max-w-2xl px-4 pt-40 pb-10 text-center sm:px-6 sm:pt-40 sm:pb-12 lg:pt-32'>
           <h2 className='mb-1 text-base font-semibold'>
             {t('Model not found')}
           </h2>
@@ -1091,14 +1100,18 @@ export function ModelDetails() {
           <Button onClick={handleBack} variant='outline' size='sm'>
             {t('Back to Models')}
           </Button>
-        </div>
+        </main>
       </PublicLayout>
     )
   }
 
   return (
-    <PublicLayout>
-      <div className='mx-auto max-w-5xl px-4 sm:px-6'>
+    <PublicLayout
+      showMainContainer={false}
+      headerProps={{ showNavigation: false }}
+    >
+      <HomeNavHeader notifications={notifications} consoleScrollEffect />
+      <main className='mx-auto w-full max-w-5xl px-4 pt-40 pb-10 sm:px-6 sm:pt-40 sm:pb-12 lg:pt-32'>
         <Button
           variant='ghost'
           size='sm'
@@ -1125,7 +1138,7 @@ export function ModelDetails() {
             >) || {}
           }
         />
-      </div>
+      </main>
     </PublicLayout>
   )
 }

@@ -20,11 +20,13 @@ import { useEffect, useMemo, useState } from 'react'
 import type { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { motion } from 'motion/react'
+import { fireConfetti } from '@/registry/magicui/confetti-utils'
 import { Loader2 } from 'lucide-react'
+import { motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { useTheme } from '@/context/theme-provider'
 import { useStatus } from '@/hooks/use-status'
 import { Button } from '@/components/ui/button'
 import {
@@ -64,6 +66,7 @@ export function SignUpForm({
   ...props
 }: React.HTMLAttributes<HTMLFormElement>) {
   const { t } = useTranslation()
+  const { resolvedTheme } = useTheme()
   const [isLoading, setIsLoading] = useState(false)
   const [verificationCode, setVerificationCode] = useState('')
   const [agreedToLegal, setAgreedToLegal] = useState(false)
@@ -175,6 +178,7 @@ export function SignUpForm({
       })
 
       if (res?.success) {
+        fireConfetti()
         toast.success(t('Account created! Please sign in'))
         redirectToLogin()
       } else {
@@ -218,6 +222,7 @@ export function SignUpForm({
     try {
       const res = await wechatLoginByCode(wechatCode)
       if (res?.success) {
+        fireConfetti()
         await handleLoginSuccess(res.data as { id?: number } | null)
         toast.success(t('Signed in via WeChat'))
         handleWeChatDialogChange(false)
@@ -235,7 +240,7 @@ export function SignUpForm({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className={cn('grid gap-5', className)}
+        className={cn('grid gap-4', className)}
         {...props}
       >
         {/* Username Field */}
@@ -244,11 +249,14 @@ export function SignUpForm({
           name='username'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('Username')}</FormLabel>
+              <FormLabel className='text-foreground text-sm font-medium'>
+                {t('Username')}
+              </FormLabel>
               <FormControl>
                 <Input
                   placeholder={t('Enter your username')}
-                  className='h-11 rounded-xl px-3.5'
+                  data-pong-collider='true'
+                  className='bg-background/80 mt-1.5 h-10 rounded-md px-3 shadow-xs'
                   {...field}
                 />
               </FormControl>
@@ -263,11 +271,14 @@ export function SignUpForm({
           name='password'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('Password')}</FormLabel>
+              <FormLabel className='text-foreground text-sm font-medium'>
+                {t('Password')}
+              </FormLabel>
               <FormControl>
                 <PasswordInput
                   placeholder={t('Enter password (8-20 characters)')}
-                  className='[&_input]:h-[52px] [&_input]:rounded-xl [&_input]:border-2 [&_input]:px-3.5 [&_button]:h-8 [&_button]:w-8'
+                  data-pong-collider='true'
+                  className='[&_input]:bg-background/80 mt-1.5 [&_input]:h-10 [&_input]:rounded-md [&_input]:px-3 [&_input]:shadow-xs'
                   {...field}
                 />
               </FormControl>
@@ -282,11 +293,14 @@ export function SignUpForm({
           name='confirmPassword'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('Confirm password')}</FormLabel>
+              <FormLabel className='text-foreground text-sm font-medium'>
+                {t('Confirm password')}
+              </FormLabel>
               <FormControl>
                 <AssistedPasswordConfirmation
                   password={passwordValue}
                   placeholder={t('Confirm password')}
+                  data-pong-collider='true'
                   value={field.value || ''}
                   onChange={field.onChange}
                   onBlur={field.onBlur}
@@ -307,14 +321,15 @@ export function SignUpForm({
               name='email'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>
+                  <FormLabel className='text-foreground text-sm font-medium'>
                     {t('Email (required for verification)')}
                   </FormLabel>
                   <FormControl>
                     <Input
                       placeholder={t('name@example.com')}
                       type='email'
-                      className='h-11 rounded-xl px-3.5'
+                      data-pong-collider='true'
+                      className='bg-background/80 mt-1.5 h-10 rounded-md px-3 shadow-xs'
                       {...field}
                     />
                   </FormControl>
@@ -324,19 +339,21 @@ export function SignUpForm({
             />
 
             {/* Verification Code Field */}
-            <div className='flex items-end gap-2'>
-              <div className='flex-1'>
+            <div className='grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end'>
+              <div className='min-w-0'>
                 <Input
                   placeholder={t('Verification code')}
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value)}
-                  className='h-11 rounded-xl px-3.5'
+                  data-pong-collider='true'
+                  className='bg-background/80 h-10 rounded-md px-3 shadow-xs'
                 />
               </div>
               <Button
                 variant='outline'
                 type='button'
-                className='h-11 rounded-xl'
+                data-pong-collider='true'
+                className='h-10 w-full justify-center rounded-md px-3 whitespace-nowrap shadow-xs sm:w-auto'
                 disabled={
                   isLoading ||
                   isSendingCode ||
@@ -360,10 +377,12 @@ export function SignUpForm({
 
         {/* Turnstile */}
         {isTurnstileEnabled && (
-          <div className='mt-2'>
+          <div data-pong-collider='true' className='mt-2 flex justify-center'>
             <Turnstile
+              key={resolvedTheme}
               siteKey={turnstileSiteKey}
               onVerify={setTurnstileToken}
+              theme={resolvedTheme}
             />
           </div>
         )}
@@ -372,13 +391,15 @@ export function SignUpForm({
           status={status}
           checked={agreedToLegal}
           onCheckedChange={setAgreedToLegal}
-          className='mt-0'
+          data-pong-collider='true'
+          className='bg-muted/45 mt-0 rounded-md'
         />
 
         {/* Submit Button */}
         <Button
           type='submit'
-          className='mt-1 h-11 w-full justify-center gap-2 rounded-xl'
+          data-pong-collider='true'
+          className='mt-1 h-10 w-full justify-center gap-2 rounded-md shadow-xs'
           disabled={
             isLoading ||
             (requiresLegalConsent && !agreedToLegal) ||
@@ -395,7 +416,9 @@ export function SignUpForm({
             disabled={isLoading || (requiresLegalConsent && !agreedToLegal)}
             onWeChatLogin={hasWeChatLogin ? handleOpenWeChatDialog : undefined}
             isWeChatLoading={isWeChatSubmitting}
-            className='pt-1'
+            withPongCollider
+            className='mt-3'
+            buttonClassName='h-10 rounded-md shadow-xs'
           />
         )}
       </form>
@@ -479,6 +502,7 @@ function AssistedPasswordConfirmation({
   onChange,
   onBlur,
   name,
+  'data-pong-collider': dataPongCollider,
 }: {
   password: string
   placeholder: string
@@ -486,6 +510,7 @@ function AssistedPasswordConfirmation({
   onChange: (value: string) => void
   onBlur: () => void
   name: string
+  'data-pong-collider'?: string
 }) {
   const [shake, setShake] = useState(false)
 
@@ -513,24 +538,23 @@ function AssistedPasswordConfirmation({
 
   const getLetterStatus = (letter: string, index: number) => {
     if (!value[index]) return ''
-    return value[index] === letter ? 'bg-emerald-500/20' : 'bg-red-500/20'
+    return value[index] === letter ? 'bg-primary/20' : 'bg-destructive/20'
   }
 
   const passwordsMatch = Boolean(password) && password === value
   const passwordSlots = password || value
 
   return (
-    <div>
-      <motion.div
-        className='relative h-[52px] w-full overflow-hidden rounded-xl border-2 bg-background'
-        animate={{
-          x: shake ? [-10, 10, -10, 10, 0] : 0,
-          scale: passwordsMatch ? [1, 1.02, 1] : 1,
-          borderColor: passwordsMatch ? '#10B981' : '',
-        }}
-        transition={{ duration: 0.3 }}
-      >
-        <div className='pointer-events-none absolute inset-y-0 left-3 z-0 flex h-full items-center justify-start'>
+    <motion.div
+      data-pong-collider={dataPongCollider}
+      className='bg-background/80 relative mt-1.5 rounded-md'
+      animate={{
+        x: shake ? [-10, 10, -10, 10, 0] : 0,
+      }}
+      transition={{ duration: 0.3 }}
+    >
+      <div className='pointer-events-none absolute inset-px z-0 overflow-hidden rounded-[calc(var(--radius-md)-1px)]'>
+        <div className='absolute inset-y-0 left-3 flex h-full items-center justify-start'>
           {passwordSlots.split('').map((letter, index) => (
             <motion.div
               key={`${letter}-${index}`}
@@ -546,17 +570,20 @@ function AssistedPasswordConfirmation({
             />
           ))}
         </div>
+      </div>
 
-        <input
-          name={name}
-          type='password'
-          placeholder={placeholder}
-          value={value}
-          onChange={handleConfirmPasswordChange}
-          onBlur={onBlur}
-          className='placeholder:text-muted-foreground relative z-10 h-full w-full bg-transparent px-3.5 py-3 text-foreground tracking-[0.4em] outline-none placeholder:tracking-normal'
-        />
-      </motion.div>
-    </div>
+      <Input
+        name={name}
+        type='password'
+        placeholder={placeholder}
+        value={value}
+        onChange={handleConfirmPasswordChange}
+        onBlur={onBlur}
+        className={cn(
+          'relative z-10 h-10 rounded-md bg-transparent px-3 shadow-xs',
+          passwordsMatch && 'border-primary focus-visible:border-primary'
+        )}
+      />
+    </motion.div>
   )
 }

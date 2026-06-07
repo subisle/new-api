@@ -113,6 +113,7 @@ function MoverRow(props: { row: RankingMover; intent: 'up' | 'down' }) {
       <div className='min-w-0 flex-1'>
         <ModelLink
           modelName={props.row.model_name}
+          disabled={props.row.has_pricing === false}
           className='text-foreground block truncate font-mono text-xs font-medium'
         >
           {props.row.model_name}

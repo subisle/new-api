@@ -16,20 +16,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useAuthStore } from '@/stores/auth-store'
 import { PublicLayout } from '@/components/layout'
 import { PersonalHome } from './components/personal-home'
 
 export function Home() {
-  const { auth } = useAuthStore()
-  const isAuthenticated = !!auth.user
-
   return (
     <PublicLayout
       showMainContainer={false}
       headerProps={{ showNavigation: false }}
     >
-      <PersonalHome isAuthenticated={isAuthenticated} />
+      <PersonalHome />
     </PublicLayout>
   )
 }

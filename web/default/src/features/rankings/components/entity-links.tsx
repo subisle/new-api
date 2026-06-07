@@ -27,6 +27,7 @@ type EntityLinkBaseProps = {
 type ModelLinkProps = EntityLinkBaseProps & {
   /** model_name as it appears in the pricing API. Used as the route param. */
   modelName: string
+  disabled?: boolean
 }
 
 /**
@@ -39,6 +40,14 @@ type ModelLinkProps = EntityLinkBaseProps & {
  * on hover.
  */
 export function ModelLink(props: ModelLinkProps) {
+  if (props.disabled) {
+    return (
+      <span className={props.className}>
+        {props.children ?? props.modelName}
+      </span>
+    )
+  }
+
   return (
     <Link
       to='/pricing/$modelId'
@@ -66,6 +75,13 @@ type VendorLinkProps = EntityLinkBaseProps & {
  * wraps.
  */
 export function VendorLink(props: VendorLinkProps) {
+  const vendor = props.vendor.trim()
+  if (!vendor || vendor === 'Unknown') {
+    return (
+      <span className={props.className}>{props.children ?? props.vendor}</span>
+    )
+  }
+
   return (
     <Link
       to='/pricing'

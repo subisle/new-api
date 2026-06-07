@@ -33,6 +33,8 @@ type OAuthProvidersProps = {
   status: SystemStatus | null
   disabled?: boolean
   className?: string
+  buttonClassName?: string
+  withPongCollider?: boolean
   onWeChatLogin?: () => void
   isWeChatLoading?: boolean
 }
@@ -49,6 +51,8 @@ export function OAuthProviders({
   status,
   disabled = false,
   className,
+  buttonClassName,
+  withPongCollider = false,
   onWeChatLogin,
   isWeChatLoading = false,
 }: OAuthProvidersProps) {
@@ -142,7 +146,7 @@ export function OAuthProviders({
           <span className='w-full border-t' />
         </div>
         <div className='relative flex justify-center text-xs uppercase'>
-          <span className='bg-background text-muted-foreground px-2'>
+          <span className='bg-card text-muted-foreground px-2'>
             {t('Or continue with')}
           </span>
         </div>
@@ -155,9 +159,13 @@ export function OAuthProviders({
               key={key}
               variant='outline'
               type='button'
+              data-pong-collider={withPongCollider ? 'true' : undefined}
               disabled={disabled || isLoading || extraDisabled}
               onClick={onClick}
-              className='h-11 w-full justify-center gap-2 rounded-lg'
+              className={cn(
+                'h-11 w-full justify-center gap-2 rounded-lg',
+                buttonClassName
+              )}
             >
               {icon}
               {label}

@@ -28,7 +28,7 @@ import { VendorLink } from './entity-links'
 
 const PERIOD_DESCRIPTIONS: Record<RankingPeriod, string> = {
   today: 'Token share by model author across the last 24 hours',
-  week: 'Token share by model author across the past few weeks',
+  week: 'Daily token share by model author across the last 7 days',
   month: 'Token share by model author across the past month',
   year: 'Token share by model author across the past year',
   all: 'Token share by model author since launch',
@@ -43,7 +43,7 @@ const VENDOR_COLOURS: Record<string, string> = {
   Google: '#4285f4',
   DeepSeek: '#7c5cff',
   Alibaba: '#ff9900',
-  xAI: '#1f2937',
+  xAI: '#64748b',
   Meta: '#1877f2',
   Moonshot: '#ec4899',
   Zhipu: '#06b6d4',
@@ -224,8 +224,24 @@ export function MarketShareSection(props: MarketShareSectionProps) {
       </header>
 
       <div className='px-5 pb-5'>
-        <div className='h-60 sm:h-72'>
-          {themeReady && spec ? (
+        <div
+          className='h-60 sm:h-72'
+          role={spec ? 'img' : undefined}
+          aria-label={
+            spec
+              ? `${t('Market Share')}: ${t(PERIOD_DESCRIPTIONS[props.period])}`
+              : undefined
+          }
+        >
+          {!spec ? (
+            <div className='text-muted-foreground/80 flex h-full items-center justify-center text-xs'>
+              {t('No history data available')}
+            </div>
+          ) : !themeReady ? (
+            <div className='text-muted-foreground/80 flex h-full items-center justify-center text-xs'>
+              {t('Loading chart')}
+            </div>
+          ) : (
             <VChart
               key={`vendor-share-${resolvedTheme}-${props.period}`}
               spec={{
@@ -235,10 +251,6 @@ export function MarketShareSection(props: MarketShareSectionProps) {
               }}
               option={VCHART_OPTION}
             />
-          ) : (
-            <div className='text-muted-foreground/80 flex h-full items-center justify-center text-xs'>
-              {t('No history data available')}
-            </div>
           )}
         </div>
       </div>

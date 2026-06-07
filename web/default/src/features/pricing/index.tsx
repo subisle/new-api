@@ -18,8 +18,10 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNotifications } from '@/hooks/use-notifications'
 import { PublicLayout } from '@/components/layout'
 import { PageTransition } from '@/components/page-transition'
+import { HomeNavHeader } from '@/features/home/components/home-nav-header'
 import {
   LoadingSkeleton,
   EmptyState,
@@ -36,6 +38,7 @@ import { usePricingData } from './hooks/use-pricing-data'
 
 export function Pricing() {
   const { t } = useTranslation()
+  const notifications = useNotifications()
   const [selectedModelName, setSelectedModelName] = useState<string | null>(
     null
   )
@@ -146,8 +149,12 @@ export function Pricing() {
 
   if (isLoading) {
     return (
-      <PublicLayout showMainContainer={false}>
-        <div className='mx-auto w-full max-w-[1800px] px-3 pt-16 pb-8 sm:px-6 sm:pt-20 sm:pb-10 xl:px-8'>
+      <PublicLayout
+        showMainContainer={false}
+        headerProps={{ showNavigation: false }}
+      >
+        <HomeNavHeader notifications={notifications} consoleScrollEffect />
+        <div className='mx-auto w-full max-w-[1800px] px-3 pt-40 pb-8 sm:px-6 sm:pt-40 sm:pb-10 lg:pt-32 xl:px-8'>
           <LoadingSkeleton viewMode={viewMode} />
         </div>
       </PublicLayout>
@@ -155,7 +162,11 @@ export function Pricing() {
   }
 
   return (
-    <PublicLayout showMainContainer={false}>
+    <PublicLayout
+      showMainContainer={false}
+      headerProps={{ showNavigation: false }}
+    >
+      <HomeNavHeader notifications={notifications} consoleScrollEffect />
       <div className='relative'>
         <div
           aria-hidden
@@ -172,7 +183,7 @@ export function Pricing() {
               'linear-gradient(to bottom, black 40%, transparent 100%)',
           }}
         />
-        <PageTransition className='relative mx-auto w-full max-w-[1800px] px-3 pt-16 pb-8 sm:px-6 sm:pt-20 sm:pb-10 xl:px-8'>
+        <PageTransition className='relative mx-auto w-full max-w-[1800px] px-3 pt-40 pb-8 sm:px-6 sm:pt-40 sm:pb-10 lg:pt-32 xl:px-8'>
           <header className='mx-auto mb-5 max-w-3xl pt-5 text-center sm:mb-10 sm:pt-10'>
             <p className='text-muted-foreground mb-3 text-xs font-medium tracking-widest uppercase'>
               {t('Models Directory')}
@@ -220,7 +231,7 @@ export function Pricing() {
               models={models || []}
               hasActiveFilters={hasActiveFilters}
               onClearFilters={clearFilters}
-              className='hover-scrollbar sticky top-4 hidden max-h-[calc(100dvh-2rem)] self-start overflow-y-auto xl:block'
+              className='hover-scrollbar sticky top-28 hidden max-h-[calc(100dvh-8rem)] self-start overflow-y-auto xl:block'
             />
 
             <main className='min-w-0 space-y-4'>

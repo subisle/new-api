@@ -14,6 +14,52 @@
     />
 
     <meta name="theme-color" content="#fff" />
+    <script>
+      ;(function () {
+        try {
+          var language =
+            localStorage.getItem('i18nextLng') || navigator.language || 'en'
+          language = language.trim().replace(/_/g, '-').toLowerCase()
+          language = language.split('-')[0]
+          if (!['en', 'zh', 'fr', 'ja', 'ru', 'vi'].includes(language)) {
+            language = 'en'
+          }
+          document.documentElement.lang = language
+        } catch {
+          /* empty */
+        }
+      })()
+    </script>
+    <script>
+      ;(function () {
+        try {
+          var match = document.cookie.match(/(?:^|; )vite-ui-theme=([^;]+)/)
+          var theme = match ? decodeURIComponent(match[1]) : 'light'
+          if (theme !== 'light' && theme !== 'dark' && theme !== 'system') {
+            theme = 'light'
+          }
+          var resolvedTheme =
+            theme === 'system'
+              ? window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light'
+              : theme
+          document.documentElement.classList.remove('light', 'dark')
+          document.documentElement.classList.add(resolvedTheme)
+          var metaThemeColor = document.querySelector(
+            "meta[name='theme-color']"
+          )
+          if (metaThemeColor) {
+            metaThemeColor.setAttribute(
+              'content',
+              resolvedTheme === 'dark' ? '#020817' : '#fff'
+            )
+          }
+        } catch {
+          document.documentElement.classList.add('light')
+        }
+      })()
+    </script>
     <!--umami-->
     <!--Google Analytics-->
   </head>

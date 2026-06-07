@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { SettingsPage } from '../components/settings-page'
 import type { SiteSettings } from '../types'
+import { DEFAULT_LOGO, DEFAULT_SYSTEM_NAME } from '@/lib/constants'
 import {
   SITE_DEFAULT_SECTION,
   getSiteSectionContent,
@@ -27,8 +28,8 @@ import {
 const defaultSiteSettings: SiteSettings = {
   'theme.frontend': 'default',
   Notice: '',
-  SystemName: 'New API',
-  Logo: '',
+  SystemName: DEFAULT_SYSTEM_NAME,
+  Logo: DEFAULT_LOGO,
   Footer: '',
   About: '',
   HomePageContent: '',

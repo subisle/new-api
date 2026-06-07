@@ -28,7 +28,7 @@ import { ModelLeaderboard } from './model-leaderboard'
 
 const PERIOD_DESCRIPTIONS: Record<RankingPeriod, string> = {
   today: 'Hourly token usage by model across the last 24 hours',
-  week: 'Weekly token usage by model across the past few weeks',
+  week: 'Daily token usage by model across the last 7 days',
   month: 'Daily token usage by model across the past month',
   year: 'Weekly token usage by model across the past year',
   all: 'Token usage by model since launch',
@@ -71,10 +71,12 @@ export function ModelsSection(props: ModelsSectionProps) {
     })
   }, [props.history])
 
-  const totalTokens = useMemo(
-    () => props.rows.reduce((s, r) => s + r.total_tokens, 0),
-    [props.rows]
-  )
+  const totalTokens = useMemo(() => {
+    const historyTotal = props.history.models.reduce((s, r) => s + r.total, 0)
+    return historyTotal > 0
+      ? historyTotal
+      : props.rows.reduce((s, r) => s + r.total_tokens, 0)
+  }, [props.history.models, props.rows])
 
   const spec = useMemo(() => {
     if (orderedPoints.length === 0) return null
@@ -186,8 +188,24 @@ export function ModelsSection(props: ModelsSectionProps) {
       </header>
 
       <div className='px-5 pb-5'>
-        <div className='h-60 sm:h-72'>
-          {themeReady && spec ? (
+        <div
+          className='h-60 sm:h-72'
+          role={spec ? 'img' : undefined}
+          aria-label={
+            spec
+              ? `${t('Top Models')}: ${t(PERIOD_DESCRIPTIONS[props.period])}`
+              : undefined
+          }
+        >
+          {!spec ? (
+            <div className='text-muted-foreground/80 flex h-full items-center justify-center text-xs'>
+              {t('No history data available')}
+            </div>
+          ) : !themeReady ? (
+            <div className='text-muted-foreground/80 flex h-full items-center justify-center text-xs'>
+              {t('Loading chart')}
+            </div>
+          ) : (
             <VChart
               key={`models-history-${resolvedTheme}-${props.period}`}
               spec={{
@@ -197,10 +215,6 @@ export function ModelsSection(props: ModelsSectionProps) {
               }}
               option={VCHART_OPTION}
             />
-          ) : (
-            <div className='text-muted-foreground/80 flex h-full items-center justify-center text-xs'>
-              {t('No history data available')}
-            </div>
           )}
         </div>
       </div>

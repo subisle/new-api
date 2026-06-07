@@ -95,7 +95,10 @@ export function SectionPageLayout(props: SectionPageLayoutProps) {
           </div>
         </div>
 
-        <div className='min-h-0 flex-1 overflow-auto px-3 pt-1 pb-3 sm:px-4 sm:pt-1.5 sm:pb-4'>
+        <div
+          data-app-scroll-container='true'
+          className='min-h-0 flex-1 overflow-auto px-3 pt-1 pb-3 sm:px-4 sm:pt-1.5 sm:pb-4'
+        >
           {content}
         </div>
 

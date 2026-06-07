@@ -16,12 +16,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link } from '@tanstack/react-router'
+import { fireConfetti } from '@/registry/magicui/confetti-utils'
 import { Loader2, LogIn, KeyRound } from 'lucide-react'
+import { motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import {
@@ -30,6 +32,7 @@ import {
   isPasskeySupported as detectPasskeySupport,
 } from '@/lib/passkey'
 import { cn } from '@/lib/utils'
+import { useTheme } from '@/context/theme-provider'
 import { useStatus } from '@/hooks/use-status'
 import { Button } from '@/components/ui/button'
 import {
@@ -61,12 +64,41 @@ import { useTurnstile } from '@/features/auth/hooks/use-turnstile'
 import { beginPasskeyLogin, finishPasskeyLogin } from '@/features/auth/passkey'
 import type { AuthFormProps } from '@/features/auth/types'
 
+function AuthReveal({
+  children,
+  className,
+  delay = 0,
+  'data-pong-collider': dataPongCollider,
+}: {
+  children: ReactNode
+  className?: string
+  delay?: number
+  'data-pong-collider'?: string
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        duration: 0.18,
+        delay: Math.min(delay, 0.06),
+        ease: [0.33, 1, 0.68, 1],
+      }}
+      className={className}
+      data-pong-collider={dataPongCollider}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
 export function UserAuthForm({
   className,
   redirectTo,
   ...props
 }: AuthFormProps) {
   const { t } = useTranslation()
+  const { resolvedTheme } = useTheme()
   const [isLoading, setIsLoading] = useState(false)
   const [wechatCode, setWeChatCode] = useState('')
   const [agreedToLegal, setAgreedToLegal] = useState(false)
@@ -97,10 +129,9 @@ export function UserAuthForm({
   const hasUserAgreement = Boolean(status?.user_agreement_enabled)
   const hasPrivacyPolicy = Boolean(status?.privacy_policy_enabled)
   const requiresLegalConsent = hasUserAgreement || hasPrivacyPolicy
+  const hasAcceptedLegalTerms = !requiresLegalConsent || agreedToLegal
   const passkeyButtonDisabled =
-    isPasskeyLoading ||
-    !passkeySupported ||
-    (requiresLegalConsent && !agreedToLegal)
+    isPasskeyLoading || !passkeySupported || !hasAcceptedLegalTerms
   const hasWeChatLogin = Boolean(status?.wechat_login)
   const hasOAuthLogin = Boolean(
     status?.github_oauth ||
@@ -112,14 +143,6 @@ export function UserAuthForm({
   )
   const hasAlternativeLogin =
     passkeyLoginEnabled || hasWeChatLogin || hasOAuthLogin
-
-  useEffect(() => {
-    if (requiresLegalConsent) {
-      setAgreedToLegal(false)
-    } else {
-      setAgreedToLegal(true)
-    }
-  }, [requiresLegalConsent])
 
   useEffect(() => {
     detectPasskeySupport()
@@ -150,7 +173,7 @@ export function UserAuthForm({
   }, [status])
 
   async function onSubmit(data: z.infer<typeof loginFormSchema>) {
-    if (requiresLegalConsent && !agreedToLegal) {
+    if (!hasAcceptedLegalTerms) {
       toast.error(legalConsentErrorMessage)
       return
     }
@@ -171,6 +194,7 @@ export function UserAuthForm({
           return
         }
 
+        fireConfetti()
         await handleLoginSuccess(res.data as { id?: number } | null, redirectTo)
         toast.success(t('Welcome back!'))
       }
@@ -182,7 +206,7 @@ export function UserAuthForm({
   }
 
   const handleOpenWeChatDialog = () => {
-    if (requiresLegalConsent && !agreedToLegal) {
+    if (!hasAcceptedLegalTerms) {
       toast.error(legalConsentErrorMessage)
       return
     }
@@ -208,6 +232,7 @@ export function UserAuthForm({
     try {
       const res = await wechatLoginByCode(wechatCode)
       if (res?.success) {
+        fireConfetti()
         await handleLoginSuccess(res.data as { id?: number } | null, redirectTo)
         toast.success(t('Signed in via WeChat'))
         handleWeChatDialogChange(false)
@@ -222,7 +247,7 @@ export function UserAuthForm({
   }
 
   async function handlePasskeyLogin() {
-    if (requiresLegalConsent && !agreedToLegal) {
+    if (!hasAcceptedLegalTerms) {
       toast.error(legalConsentErrorMessage)
       return
     }
@@ -271,6 +296,7 @@ export function UserAuthForm({
         throw new Error(t('Missing user data from Passkey login response'))
       }
 
+      fireConfetti()
       await handleLoginSuccess(
         finish.data as { id?: number } | null,
         redirectTo
@@ -298,7 +324,8 @@ export function UserAuthForm({
             variant='outline'
             disabled={passkeyButtonDisabled}
             onClick={handlePasskeyLogin}
-            className='h-11 w-full justify-center gap-2 rounded-lg'
+            data-pong-collider='true'
+            className='h-10 w-full justify-center gap-2 rounded-md shadow-xs'
           >
             {isPasskeyLoading ? (
               <Loader2 className='h-4 w-4 animate-spin' />
@@ -318,7 +345,10 @@ export function UserAuthForm({
       {/* OAuth Providers */}
       <OAuthProviders
         status={status}
-        disabled={isLoading || (requiresLegalConsent && !agreedToLegal)}
+        disabled={isLoading || !hasAcceptedLegalTerms}
+        className='mt-3'
+        buttonClassName='h-10 rounded-md shadow-xs'
+        withPongCollider
         onWeChatLogin={hasWeChatLogin ? handleOpenWeChatDialog : undefined}
         isWeChatLoading={isWeChatSubmitting}
       />
@@ -329,7 +359,7 @@ export function UserAuthForm({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className={cn('grid gap-5', className)}
+        className={cn('grid gap-4', className)}
         {...props}
       >
         {hasAlternativeLogin && (
@@ -339,76 +369,98 @@ export function UserAuthForm({
         {passwordLoginEnabled && (
           <>
             {/* Username Field */}
-            <FormField
-              control={form.control}
-              name='username'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('Username or Email')}</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder={t('Enter your username or email')}
-                      className='h-11 rounded-xl px-3.5'
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <AuthReveal delay={0.04}>
+              <FormField
+                control={form.control}
+                name='username'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className='text-foreground text-sm font-medium'>
+                      {t('Username or Email')}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t('Enter your username or email')}
+                        data-pong-collider='true'
+                        className='bg-background/80 mt-1.5 h-10 rounded-md px-3 shadow-xs'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </AuthReveal>
 
             {/* Password Field */}
-            <FormField
-              control={form.control}
-              name='password'
-              render={({ field }) => (
-                <FormItem className='relative'>
-                  <FormLabel>{t('Password')}</FormLabel>
-                  <FormControl>
-                    <PasswordInput
-                      placeholder={t('Enter password')}
-                      className='[&_input]:h-11 [&_input]:rounded-xl [&_input]:px-3.5'
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                  <Link
-                    to='/forgot-password'
-                    className='text-muted-foreground absolute end-0 -top-0.5 z-10 text-sm font-medium hover:opacity-75'
-                  >
-                    {t('Forgot password?')}
-                  </Link>
-                </FormItem>
-              )}
-            />
+            <AuthReveal delay={0.08}>
+              <FormField
+                control={form.control}
+                name='password'
+                render={({ field }) => (
+                  <FormItem className='relative'>
+                    <FormLabel className='text-foreground text-sm font-medium'>
+                      {t('Password')}
+                    </FormLabel>
+                    <FormControl>
+                      <PasswordInput
+                        placeholder={t('Enter password')}
+                        data-pong-collider='true'
+                        className='[&_input]:bg-background/80 mt-1.5 [&_input]:h-10 [&_input]:rounded-md [&_input]:px-3 [&_input]:shadow-xs'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                    <Link
+                      to='/forgot-password'
+                      preload='intent'
+                      data-pong-collider='true'
+                      className='text-muted-foreground hover:text-foreground absolute end-3 -top-0.5 z-10 text-sm font-medium sm:end-0'
+                    >
+                      {t('Forgot password?')}
+                    </Link>
+                  </FormItem>
+                )}
+              />
+            </AuthReveal>
 
             {/* Submit Button */}
-            <Button
-              type='submit'
-              className='mt-1 h-11 w-full justify-center gap-2 rounded-xl'
-              disabled={isLoading || (requiresLegalConsent && !agreedToLegal)}
-            >
-              {isLoading ? <Loader2 className='animate-spin' /> : <LogIn />}
-              {t('Sign in')}
-            </Button>
+            <AuthReveal delay={0.12}>
+              <Button
+                type='submit'
+                data-pong-collider='true'
+                className='mt-1 h-10 w-full justify-center gap-2 rounded-md shadow-xs'
+                disabled={isLoading || !hasAcceptedLegalTerms}
+              >
+                {isLoading ? <Loader2 className='animate-spin' /> : <LogIn />}
+                {t('Sign in')}
+              </Button>
+            </AuthReveal>
 
             {/* Turnstile */}
             {isTurnstileEnabled && (
-              <div className='mt-2'>
+              <AuthReveal
+                delay={0.16}
+                data-pong-collider='true'
+                className='mt-2 flex justify-center'
+              >
                 <Turnstile
+                  key={resolvedTheme}
                   siteKey={turnstileSiteKey}
                   onVerify={setTurnstileToken}
+                  theme={resolvedTheme}
                 />
-              </div>
+              </AuthReveal>
             )}
           </>
         )}
 
         <LegalConsent
           status={status}
-          checked={agreedToLegal}
+          checked={hasAcceptedLegalTerms}
           onCheckedChange={setAgreedToLegal}
-          className='mt-0'
+          data-pong-collider='true'
+          className='bg-muted/45 mt-0 rounded-md'
         />
 
         {!hasAlternativeLogin && (
@@ -471,7 +523,7 @@ export function UserAuthForm({
                 disabled={
                   isWeChatSubmitting ||
                   !wechatCode.trim() ||
-                  (requiresLegalConsent && !agreedToLegal)
+                  !hasAcceptedLegalTerms
                 }
                 className='gap-2'
               >

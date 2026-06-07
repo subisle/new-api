@@ -30,6 +30,7 @@ function PopoverTrigger({ ...props }: PopoverPrimitive.Trigger.Props) {
 
 function PopoverContent({
   className,
+  positionerClassName,
   align = 'center',
   alignOffset = 0,
   side = 'bottom',
@@ -48,7 +49,9 @@ function PopoverContent({
     | 'collisionPadding'
     | 'collisionBoundary'
     | 'collisionAvoidance'
-  >) {
+  > & {
+    positionerClassName?: string
+  }) {
   return (
     <PopoverPrimitive.Portal>
       <PopoverPrimitive.Positioner
@@ -59,7 +62,7 @@ function PopoverContent({
         collisionPadding={collisionPadding}
         collisionBoundary={collisionBoundary}
         collisionAvoidance={collisionAvoidance}
-        className='isolate z-50'
+        className={cn('isolate z-50', positionerClassName)}
       >
         <PopoverPrimitive.Popup
           data-slot='popover-content'
