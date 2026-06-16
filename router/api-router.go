@@ -51,6 +51,7 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.GET("/oauth/telegram/bind", middleware.CriticalRateLimit(), controller.TelegramBind)
 		// Standard OAuth providers (GitHub, Discord, OIDC, LinuxDO) - unified route
 		apiRouter.GET("/oauth/:provider", middleware.CriticalRateLimit(), controller.HandleOAuth)
+		apiRouter.POST("/oauth/complete", middleware.CriticalRateLimit(), controller.CompleteOAuthRegistration)
 		apiRouter.GET("/ratio_config", middleware.CriticalRateLimit(), controller.GetRatioConfig)
 
 		apiRouter.POST("/stripe/webhook", controller.StripeWebhook)

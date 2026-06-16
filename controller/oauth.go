@@ -103,6 +103,41 @@ func HandleOAuth(c *gin.Context) {
 		return
 	}
 
+	// 【新增】如果启用了兑换码验证，检查是否为新用户
+	if common.RequireRedemptionForOAuth {
+		isNewUser := !provider.IsUserIDTaken(oauthUser.ProviderUserID)
+
+		if isNewUser {
+			// 新用户，暂存 OAuth 信息到 session，等待前端输入兑换码
+			session.Set("oauth_pending", true)
+			session.Set("oauth_provider", provider.GetProviderPrefix())
+			session.Set("oauth_user_id", oauthUser.ProviderUserID)
+			session.Set("oauth_username", oauthUser.Username)
+			session.Set("oauth_display_name", oauthUser.DisplayName)
+			session.Set("oauth_email", oauthUser.Email)
+
+			// 如果有 extra 数据也保存（如 GitHub legacy_id）
+			if len(oauthUser.Extra) > 0 {
+				extraJson, _ := common.Marshal(oauthUser.Extra)
+				session.Set("oauth_extra", string(extraJson))
+			}
+
+			err = session.Save()
+			if err != nil {
+				common.ApiError(c, err)
+				return
+			}
+
+			// 返回特殊状态，告诉前端需要输入兑换码
+			c.JSON(http.StatusOK, gin.H{
+				"success":            true,
+				"message":            "",
+				"pending_redemption": true,
+			})
+			return
+		}
+	}
+
 	// 7. Find or create user
 	user, err := findOrCreateOAuthUser(c, provider, oauthUser, session)
 	if err != nil {
@@ -359,4 +394,187 @@ func handleOAuthError(c *gin.Context, err error) {
 	default:
 		common.ApiError(c, err)
 	}
+}
+
+// CompleteOAuthRegistration 验证兑换码并完成 OAuth 注册
+func CompleteOAuthRegistration(c *gin.Context) {
+	session := sessions.Default(c)
+
+	// 1. 检查是否有待完成的 OAuth 注册
+	oauthPending := session.Get("oauth_pending")
+	if oauthPending == nil || !oauthPending.(bool) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "没有待完成的 OAuth 注册",
+		})
+		return
+	}
+
+	// 2. 获取兑换码
+	var req struct {
+		RedemptionCode string `json:"redemption_code" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	// 3. 验证兑换码
+	err := model.ValidateRedemptionForOAuth(req.RedemptionCode)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+	}
+
+	// __CONTINUE_HERE__
+
+	// 4. 从 session 恢复 OAuth 用户信息
+	providerName := session.Get("oauth_provider").(string)
+	provider := oauth.GetProvider(providerName)
+	if provider == nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "无效的 OAuth 提供商",
+		})
+		return
+	}
+
+	oauthUser := &oauth.OAuthUser{
+		ProviderUserID: session.Get("oauth_user_id").(string),
+	}
+
+	if username := session.Get("oauth_username"); username != nil {
+		oauthUser.Username = username.(string)
+	}
+	if displayName := session.Get("oauth_display_name"); displayName != nil {
+		oauthUser.DisplayName = displayName.(string)
+	}
+	if email := session.Get("oauth_email"); email != nil {
+		oauthUser.Email = email.(string)
+	}
+	if extraJson := session.Get("oauth_extra"); extraJson != nil {
+		var extra map[string]interface{}
+		common.Unmarshal([]byte(extraJson.(string)), &extra)
+		oauthUser.Extra = extra
+	}
+
+	// __CONTINUE_HERE__
+
+	// 5. 创建用户
+	user := &model.User{}
+	user.Username = provider.GetProviderPrefix() + strconv.Itoa(model.GetMaxUserId()+1)
+
+	if oauthUser.Username != "" {
+		if exists, err := model.CheckUserExistOrDeleted(oauthUser.Username, ""); err == nil && !exists {
+			if len(oauthUser.Username) <= model.UserNameMaxLength {
+				user.Username = oauthUser.Username
+			}
+		}
+	}
+
+	if oauthUser.DisplayName != "" {
+		user.DisplayName = oauthUser.DisplayName
+	} else if oauthUser.Username != "" {
+		user.DisplayName = oauthUser.Username
+	} else {
+		user.DisplayName = provider.GetName() + " User"
+	}
+
+	if oauthUser.Email != "" {
+		user.Email = oauthUser.Email
+	}
+
+	user.Role = common.RoleCommonUser
+	user.Status = common.UserStatusEnabled
+
+	// 6. 处理推广码（如果有）
+	affCode := session.Get("aff")
+	inviterId := 0
+	if affCode != nil {
+		inviterId, _ = model.GetUserIdByAffCode(affCode.(string))
+	}
+
+	// __CONTINUE_HERE__
+
+	// 7. 创建用户并绑定 OAuth
+	err = model.DB.Transaction(func(tx *gorm.DB) error {
+		// 根据提供商类型设置对应字段
+		switch providerName {
+		case "linuxdo":
+			user.LinuxDOId = oauthUser.ProviderUserID
+		case "github":
+			user.GitHubId = oauthUser.ProviderUserID
+		case "discord":
+			user.DiscordId = oauthUser.ProviderUserID
+		case "wechat":
+			user.WeChatId = oauthUser.ProviderUserID
+		case "telegram":
+			user.TelegramId = oauthUser.ProviderUserID
+		case "oidc":
+			user.OidcId = oauthUser.ProviderUserID
+		}
+
+		if err := user.InsertWithTx(tx, inviterId); err != nil {
+			return err
+		}
+
+		// 如果是自定义 OAuth，还需创建绑定记录
+		if genericProvider, ok := provider.(*oauth.GenericOAuthProvider); ok {
+			binding := &model.UserOAuthBinding{
+				UserId:         user.Id,
+				ProviderId:     genericProvider.GetProviderId(),
+				ProviderUserId: oauthUser.ProviderUserID,
+			}
+			if err := model.CreateUserOAuthBindingWithTx(tx, binding); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	// __CONTINUE_HERE__
+
+	// 8. 用户创建成功后的后续操作
+	user.FinalizeOAuthUserCreation(inviterId)
+
+	// 9. 消费兑换码并赠送额度（如果有）
+	quota, err := model.Redeem(req.RedemptionCode, user.Id)
+	if err != nil {
+		common.SysError(fmt.Sprintf("Failed to redeem code %s for user %d: %s", req.RedemptionCode, user.Id, err.Error()))
+		// 不阻断注册流程，只记录错误
+		quota = 0
+	} else {
+		if quota > 0 {
+			common.SysLog(fmt.Sprintf("User %d redeemed code %s, got quota %d", user.Id, req.RedemptionCode, quota))
+		} else {
+			common.SysLog(fmt.Sprintf("User %d redeemed code %s (zero-quota registration)", user.Id, req.RedemptionCode))
+		}
+	}
+
+	// 10. 清除 session 中的待注册状态
+	session.Delete("oauth_pending")
+	session.Delete("oauth_provider")
+	session.Delete("oauth_user_id")
+	session.Delete("oauth_username")
+	session.Delete("oauth_display_name")
+	session.Delete("oauth_email")
+	session.Delete("oauth_extra")
+
+	// 11. 设置登录状态
+	setupLogin(user, c)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "注册成功",
+		"data":    quota, // 返回获得的额度（可能为 0）
+	})
 }

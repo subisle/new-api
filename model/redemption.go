@@ -179,6 +179,30 @@ func (redemption *Redemption) Delete() error {
 	return err
 }
 
+// ValidateRedemptionForOAuth 验证兑换码是否有效（仅验证，不消费）
+// 用于 OAuth 注册前的预检查
+func ValidateRedemptionForOAuth(key string) error {
+	if key == "" {
+		return errors.New("兑换码为空")
+	}
+
+	var redemption Redemption
+	err := DB.Where("`key` = ?", key).First(&redemption).Error
+	if err != nil {
+		return errors.New("兑换码不存在")
+	}
+
+	if redemption.Status != common.RedemptionCodeStatusEnabled {
+		return errors.New("该兑换码已被使用或已禁用")
+	}
+
+	if redemption.ExpiredTime != 0 && redemption.ExpiredTime < common.GetTimestamp() {
+		return errors.New("该兑换码已过期")
+	}
+
+	return nil
+}
+
 func DeleteRedemptionById(id int) (err error) {
 	if id == 0 {
 		return errors.New("id 为空！")

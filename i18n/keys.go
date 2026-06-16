@@ -293,6 +293,8 @@ const (
 	MsgOAuthTokenFailed     = "oauth.token_failed"
 	MsgOAuthUserInfoEmpty   = "oauth.user_info_empty"
 	MsgOAuthTrustLevelLow   = "oauth.trust_level_low"
+	MsgOAuthRedemptionRequired = "oauth.redemption_required"
+	MsgOAuthRedemptionInvalid  = "oauth.redemption_invalid"
 )
 
 // Model layer error messages (for translation in controller)

@@ -1,0 +1,66 @@
+[SYS] 2026/06/16 - 14:07:51 | initializing token encoders 
+[SYS] 2026/06/16 - 14:07:51 | token encoders initialized 
+[SYS] 2026/06/16 - 14:07:51 | SQL_DSN not set, using SQLite as database 
+[SYS] 2026/06/16 - 14:07:51 | database migration started 
+[SYS] 2026/06/16 - 14:07:51 | system is already initialized at: 2026-06-05 05:51:02 +0800 CST 
+[SYS] 2026/06/16 - 14:07:51 | REDIS_CONN_STRING not set, Redis is not enabled 
+[SYS] 2026/06/16 - 14:07:51 | i18n initialized with languages: zh-CN, zh-TW, en 
+[SYS] 2026/06/16 - 14:07:51 | Loaded 0 custom OAuth providers 
+[SYS] 2026/06/16 - 14:07:51 | New API v0.0.0 started 
+[SYS] 2026/06/16 - 14:07:51 | 正在更新数据看板数据... 
+[SYS] 2026/06/16 - 14:07:51 | 保存数据看板数据成功，共保存0条数据 
+[SYS] 2026/06/16 - 14:07:51 | upstream model update task started: interval=30m0s 
+[INFO] 2026/06/16 - 14:07:51 | SYSTEM | subscription quota reset task started: tick=1m0s 
+[INFO] 2026/06/16 - 14:07:51 | SYSTEM | codex credential auto-refresh task started: tick=10m0s threshold=24h0m0s 
+
+  [32m西瓜狗 v0.0.0[0m  ready in 46 ms
+
+  ➜  [1mLocal:[0m   http://localhost:3000/
+  ➜  [1mNetwork:[0m http://192.168.5.2:3000/
+
+[SYS] 2026/06/16 - 14:08:06 | 任务进度轮询开始 
+[SYS] 2026/06/16 - 14:08:06 | 任务进度轮询完成 
+[GIN] 2026/06/16 - 14:08:06 | api | 20260616060806573194000bFLf2TnucjCum9tA | 200 |     250.875µs |             ::1 |     GET /api/status
+[SYS] 2026/06/16 - 14:08:21 | 任务进度轮询开始 
+[SYS] 2026/06/16 - 14:08:21 | 任务进度轮询完成 
+[SYS] 2026/06/16 - 14:08:36 | 任务进度轮询开始 
+[SYS] 2026/06/16 - 14:08:36 | 任务进度轮询完成 
+[SYS] 2026/06/16 - 14:08:51 | syncing options from database 
+[SYS] 2026/06/16 - 14:08:51 | 任务进度轮询开始 
+[SYS] 2026/06/16 - 14:08:51 | 任务进度轮询完成 
+[GIN] 2026/06/16 - 14:09:00 | api | 20260616060900223350000bFLf2Tnub33ZJXhp | 200 |      88.042µs |             ::1 |     GET /api/status
+[GIN] 2026/06/16 - 14:09:00 | api | 20260616060900232176000bFLf2Tnutc4b4q4R | 400 |    6.507416ms |             ::1 |    POST /api/oauth/complete
+[SYS] 2026/06/16 - 14:09:06 | 任务进度轮询开始 
+[SYS] 2026/06/16 - 14:09:06 | 任务进度轮询完成 
+[SYS] 2026/06/16 - 14:09:21 | 任务进度轮询开始 
+[SYS] 2026/06/16 - 14:09:21 | 任务进度轮询完成 
+[SYS] 2026/06/16 - 14:09:36 | 任务进度轮询开始 
+[SYS] 2026/06/16 - 14:09:36 | 任务进度轮询完成 
+[SYS] 2026/06/16 - 14:09:51 | syncing options from database 
+[SYS] 2026/06/16 - 14:09:51 | 任务进度轮询开始 
+[SYS] 2026/06/16 - 14:09:51 | 任务进度轮询完成 
+[SYS] 2026/06/16 - 14:10:06 | 任务进度轮询开始 
+[SYS] 2026/06/16 - 14:10:06 | 任务进度轮询完成 
+2026/06/16 14:10:20 [sessions] ERROR! securecookie: the value is not valid
+[GIN] 2026/06/16 - 14:10:20 | api | 20260616061020911721000bFLf2Tnu16kL9Xrf | 401 |    3.647084ms |             ::1 |     GET /api/option/
+[GIN] 2026/06/16 - 14:10:20 | api | 20260616061020913698000bFLf2TnuqpPaLtut | 200 |    1.708083ms |             ::1 |     GET /api/notice
+[GIN] 2026/06/16 - 14:10:20 | api | 20260616061020911117000bFLf2TnuG6EFcrFT | 200 |    4.739834ms |             ::1 |     GET /api/status
+2026/06/16 14:10:20 [sessions] ERROR! securecookie: the value is not valid
+[GIN] 2026/06/16 - 14:10:20 | api | 20260616061020977554000bFLf2TnuQ1fMAEN3 | 401 |     265.041µs |             ::1 |     GET /api/option/
+[SYS] 2026/06/16 - 14:10:21 | 任务进度轮询开始 
+[SYS] 2026/06/16 - 14:10:21 | 任务进度轮询完成 
+2026/06/16 14:10:23 [sessions] ERROR! securecookie: the value is not valid
+[GIN] 2026/06/16 - 14:10:23 | api | 2026061606102345514000bFLf2TnuonZuVJDY | 200 |     863.209µs |             ::1 |     GET /api/user/logout
+2026/06/16 14:10:23 [sessions] ERROR! securecookie: the value is not valid
+[GIN] 2026/06/16 - 14:10:23 | api | 2026061606102348993000bFLf2TnufwMM6ywo | 200 |    1.584625ms |             ::1 |     GET /api/oauth/state?aff=
+[SYS] 2026/06/16 - 14:10:36 | 任务进度轮询开始 
+[SYS] 2026/06/16 - 14:10:36 | 任务进度轮询完成 
+[SYS] 2026/06/16 - 14:10:51 | syncing options from database 
+[SYS] 2026/06/16 - 14:10:51 | 任务进度轮询开始 
+[SYS] 2026/06/16 - 14:10:51 | 任务进度轮询完成 
+[SYS] 2026/06/16 - 14:11:06 | 任务进度轮询开始 
+[SYS] 2026/06/16 - 14:11:06 | 任务进度轮询完成 
+[SYS] 2026/06/16 - 14:11:21 | 任务进度轮询开始 
+[SYS] 2026/06/16 - 14:11:21 | 任务进度轮询完成 
+[SYS] 2026/06/16 - 14:11:36 | 任务进度轮询开始 
+[SYS] 2026/06/16 - 14:11:36 | 任务进度轮询完成 
