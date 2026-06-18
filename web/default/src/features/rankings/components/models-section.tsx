@@ -31,7 +31,6 @@ const PERIOD_DESCRIPTIONS: Record<RankingPeriod, string> = {
   week: 'Daily token usage by model across the last 7 days',
   month: 'Daily token usage by model across the past month',
   year: 'Weekly token usage by model across the past year',
-  all: 'Token usage by model since launch',
 }
 
 const TOOLTIP_MAX_ROWS = 10
