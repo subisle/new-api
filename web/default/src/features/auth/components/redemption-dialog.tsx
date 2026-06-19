@@ -79,10 +79,7 @@ export function RedemptionDialog({ open, onSuccess }: RedemptionDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent
-        className="sm:max-w-[425px]"
-        onPointerDownOutside={(e) => e.preventDefault()}
-      >
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{t('Enter Redemption Code')}</DialogTitle>
           <DialogDescription>

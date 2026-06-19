@@ -187,7 +187,11 @@ func ValidateRedemptionForOAuth(key string) error {
 	}
 
 	var redemption Redemption
-	err := DB.Where("`key` = ?", key).First(&redemption).Error
+	keyCol := "`key`"
+	if common.UsingPostgreSQL {
+		keyCol = `"key"`
+	}
+	err := DB.Where(keyCol+" = ?", key).First(&redemption).Error
 	if err != nil {
 		return errors.New("兑换码不存在")
 	}

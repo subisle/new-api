@@ -110,7 +110,7 @@ func HandleOAuth(c *gin.Context) {
 		if isNewUser {
 			// 新用户，暂存 OAuth 信息到 session，等待前端输入兑换码
 			session.Set("oauth_pending", true)
-			session.Set("oauth_provider", provider.GetProviderPrefix())
+			session.Set("oauth_provider", providerName)
 			session.Set("oauth_user_id", oauthUser.ProviderUserID)
 			session.Set("oauth_username", oauthUser.Username)
 			session.Set("oauth_display_name", oauthUser.DisplayName)

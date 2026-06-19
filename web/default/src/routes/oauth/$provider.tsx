@@ -29,6 +29,7 @@ import { toast } from 'sonner'
 import { useAuthStore, type AuthUser } from '@/stores/auth-store'
 import { api, getSelf } from '@/lib/api'
 import { OAuthCallbackScreen } from '@/features/auth/components/oauth-callback-screen'
+import { RedemptionDialog } from '@/features/auth/components/redemption-dialog'
 import { OAUTH_BIND_STORAGE_KEY } from '@/features/auth/constants'
 
 type OAuthRequestConfig = AxiosRequestConfig & {
@@ -49,6 +50,7 @@ function OAuthCallback() {
     if (typeof window === 'undefined') return 'login'
     return window.opener ? 'bind' : 'login'
   })
+  const [showRedemptionDialog, setShowRedemptionDialog] = useState(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -169,6 +171,11 @@ function OAuthCallback() {
         }
         const res = await api.get(`/api/oauth/${provider}`, config)
         if (res?.data?.success) {
+          if (res.data?.pending_redemption) {
+            setShowRedemptionDialog(true)
+            return
+          }
+
           const { message } = res.data
           const loginUser = (res.data?.data ?? null) as AuthUser | null
           // Check if this is a bind operation
@@ -239,7 +246,49 @@ function OAuthCallback() {
     })()
   }, [mode, navigate, provider, search])
 
-  return <OAuthCallbackScreen provider={provider} mode={mode} />
+  return (
+    <>
+      <OAuthCallbackScreen provider={provider} mode={mode} />
+      <RedemptionDialog
+        open={showRedemptionDialog}
+        onSuccess={async () => {
+          setShowRedemptionDialog(false)
+          if (await (async () => {
+            try {
+              const selfResponse = (await getSelf()) as {
+                success?: boolean
+                data?: AuthUser | null
+              }
+              if (selfResponse?.success && selfResponse.data) {
+                useAuthStore.getState().auth.setUser(selfResponse.data)
+                try {
+                  if (
+                    typeof window !== 'undefined' &&
+                    selfResponse.data?.id != null
+                  ) {
+                    window.localStorage.setItem(
+                      'uid',
+                      String(selfResponse.data.id)
+                    )
+                  }
+                } catch (_error) {
+                  void _error
+                }
+                return true
+              }
+            } catch (_error) {
+              void _error
+            }
+            return false
+          })()) {
+            navigate({ to: '/dashboard', replace: true })
+            return
+          }
+          navigate({ to: '/sign-in', replace: true })
+        }}
+      />
+    </>
+  )
 }
 
 export const Route = createFileRoute('/oauth/$provider')({

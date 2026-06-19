@@ -1060,9 +1060,13 @@ func GetUsernameById(id int, fromDB bool) (username string, err error) {
 }
 
 func IsLinuxDOIdAlreadyTaken(linuxDOId string) bool {
-	var user User
-	err := DB.Unscoped().Where("linux_do_id = ?", linuxDOId).First(&user).Error
-	return !errors.Is(err, gorm.ErrRecordNotFound)
+	// 不使用 Unscoped：软删除的用户不应视为已占用，否则会与 FillUserByLinuxDOId
+	// （默认排除软删除）语义不一致，导致 OAuth 登录卡在“被当成老用户但又查不到”
+	// 的死区（IsUserIDTaken=true → FillUserByLinuxDOId 返回 record not found）。
+	// 排除软删除后，软删除账号会被当作新用户重新走注册流程。
+	var count int64
+	err := DB.Model(&User{}).Where("linux_do_id = ?", linuxDOId).Count(&count).Error
+	return err == nil && count > 0
 }
 
 func (user *User) FillUserByLinuxDOId() error {
