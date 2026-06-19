@@ -212,6 +212,35 @@ func Register(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgUserExists)
 		return
 	}
+
+	// 如果启用了兑换码验证，走两阶段注册流程：
+	// 1) 验证注册信息，暂存到 session，返回 pending_redemption
+	// 2) 前端弹出兑换码窗口，用户输入后调用 /api/oauth/complete 完成注册
+	if common.RequireRedemptionForOAuth {
+		session := sessions.Default(c)
+		affCode := user.AffCode
+		session.Set("reg_pending", true)
+		session.Set("reg_username", user.Username)
+		session.Set("reg_password", user.Password)
+		session.Set("reg_display_name", user.Username)
+		if common.EmailVerificationEnabled {
+			session.Set("reg_email", user.Email)
+		}
+		if affCode != "" {
+			session.Set("reg_aff_code", affCode)
+		}
+		if err := session.Save(); err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"success":            true,
+			"message":            "",
+			"pending_redemption": true,
+		})
+		return
+	}
+
 	affCode := user.AffCode // this code is the inviter's code, not the user's own code
 	inviterId, _ := model.GetUserIdByAffCode(affCode)
 	cleanUser := model.User{

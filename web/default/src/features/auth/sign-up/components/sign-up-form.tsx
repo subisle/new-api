@@ -45,6 +45,7 @@ import { Turnstile } from '@/components/turnstile'
 import { register, wechatLoginByCode } from '@/features/auth/api'
 import { LegalConsent } from '@/features/auth/components/legal-consent'
 import { OAuthProviders } from '@/features/auth/components/oauth-providers'
+import { RedemptionDialog } from '@/features/auth/components/redemption-dialog'
 import { registerFormSchema } from '@/features/auth/constants'
 import { useAuthRedirect } from '@/features/auth/hooks/use-auth-redirect'
 import { useEmailVerification } from '@/features/auth/hooks/use-email-verification'
@@ -66,6 +67,7 @@ export function SignUpForm({
   const [wechatCode, setWeChatCode] = useState('')
   const [isWeChatDialogOpen, setIsWeChatDialogOpen] = useState(false)
   const [isWeChatSubmitting, setIsWeChatSubmitting] = useState(false)
+  const [isRedemptionDialogOpen, setIsRedemptionDialogOpen] = useState(false)
   const legalConsentErrorMessage = t('Please agree to the legal terms first')
 
   const { status } = useStatus()
@@ -108,6 +110,10 @@ export function SignUpForm({
     status?.data?.oauth_register_enabled ??
     true
   const hasWeChatLogin = Boolean(status?.wechat_login)
+  const requireRedemption = Boolean(
+    status?.require_redemption_for_oauth ??
+      status?.data?.require_redemption_for_oauth
+  )
   const turnstileReady = !isTurnstileEnabled || Boolean(turnstileToken)
 
   const wechatQrCodeUrl = useMemo(() => {
@@ -171,6 +177,11 @@ export function SignUpForm({
       })
 
       if (res?.success) {
+        // 如果后端返回 pending_redemption，弹出兑换码窗口
+        if ((res as unknown as { pending_redemption?: boolean }).pending_redemption) {
+          setIsRedemptionDialogOpen(true)
+          return
+        }
         fireConfetti()
         toast.success(t('Account created! Please sign in'))
         redirectToLogin()
@@ -481,6 +492,22 @@ export function SignUpForm({
           </div>
         </Dialog>
       )}
+
+      {/* Redemption code dialog for new user registration */}
+      <RedemptionDialog
+        open={isRedemptionDialogOpen}
+        onOpenChange={setIsRedemptionDialogOpen}
+        title={t('Enter Redemption Code')}
+        description={t(
+          'Please enter the redemption code provided by the administrator to complete your registration'
+        )}
+        onSuccess={() => {
+          setIsRedemptionDialogOpen(false)
+          fireConfetti()
+          toast.success(t('Account created! Please sign in'))
+          redirectToLogin()
+        }}
+      />
     </Form>
   )
 }

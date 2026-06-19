@@ -34,13 +34,36 @@ import { Loader2 } from 'lucide-react'
 
 interface RedemptionDialogProps {
   open: boolean
+  onOpenChange?: (open: boolean) => void
   onSuccess: () => void
+  /** Custom endpoint for completing registration. Defaults to /api/oauth/complete */
+  endpoint?: string
+  /** Custom title for the dialog */
+  title?: string
+  /** Custom description for the dialog */
+  description?: string
 }
 
-export function RedemptionDialog({ open, onSuccess }: RedemptionDialogProps) {
+export function RedemptionDialog({
+  open,
+  onOpenChange,
+  onSuccess,
+  endpoint = '/api/oauth/complete',
+  title,
+  description,
+}: RedemptionDialogProps) {
   const { t } = useTranslation()
   const [redemptionCode, setRedemptionCode] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleChange = (nextOpen: boolean) => {
+    if (onOpenChange) {
+      onOpenChange(nextOpen)
+    }
+    if (!nextOpen) {
+      setRedemptionCode('')
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,7 +75,7 @@ export function RedemptionDialog({ open, onSuccess }: RedemptionDialogProps) {
 
     setIsSubmitting(true)
     try {
-      const response = await fetch('/api/oauth/complete', {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -65,7 +88,10 @@ export function RedemptionDialog({ open, onSuccess }: RedemptionDialogProps) {
       const data = await response.json()
 
       if (data.success) {
-        toast.success(t('Registration completed successfully!'))
+        toast.success(
+          data.message || t('Registration completed successfully!')
+        )
+        setRedemptionCode('')
         onSuccess()
       } else {
         toast.error(data.message || t('Invalid or expired redemption code'))
@@ -78,14 +104,20 @@ export function RedemptionDialog({ open, onSuccess }: RedemptionDialogProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange ? handleChange : () => {}}
+    >
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{t('Enter Redemption Code')}</DialogTitle>
+          <DialogTitle>
+            {title || t('Enter Redemption Code')}
+          </DialogTitle>
           <DialogDescription>
-            {t(
-              'Please enter the redemption code provided by the administrator to complete your registration'
-            )}
+            {description ||
+              t(
+                'Please enter the redemption code provided by the administrator to complete your registration'
+              )}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -103,6 +135,16 @@ export function RedemptionDialog({ open, onSuccess }: RedemptionDialogProps) {
             </div>
           </div>
           <DialogFooter>
+            {onOpenChange && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleChange(false)}
+                disabled={isSubmitting}
+              >
+                {t('Cancel')}
+              </Button>
+            )}
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {t('Complete Registration')}

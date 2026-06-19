@@ -103,18 +103,13 @@ func HandleOAuth(c *gin.Context) {
 		return
 	}
 
-	// 【新增】如果启用了兑换码验证，检查是否为新用户
+	// 如果启用了兑换码验证，检查是否为新用户。
+	// 账号被彻底删除后，同一 OAuth 身份应允许按新用户重新注册并重新输入兑换码，
+	// 因此这里不再对历史软删除记录做拦截。
 	if common.RequireRedemptionForOAuth {
 		isNewUser := !provider.IsUserIDTaken(oauthUser.ProviderUserID)
 
 		if isNewUser {
-			// Check for soft-deleted user with same OAuth ID (legacy data from before hard-delete)
-			oauthColumn := oauthProviderColumn(providerName)
-			if oauthColumn != "" && model.IsSoftDeletedOAuthUser(oauthColumn, oauthUser.ProviderUserID) {
-				common.ApiErrorI18n(c, i18n.MsgOAuthUserDeleted)
-				return
-			}
-
 			// 新用户，暂存 OAuth 信息到 session，等待前端输入兑换码
 			session.Set("oauth_pending", true)
 			session.Set("oauth_provider", providerName)
@@ -141,15 +136,6 @@ func HandleOAuth(c *gin.Context) {
 				"message":            "",
 				"pending_redemption": true,
 			})
-			return
-		}
-	}
-
-	// 6.5 Check for soft-deleted user with same OAuth ID (legacy data from before hard-delete)
-	if !provider.IsUserIDTaken(oauthUser.ProviderUserID) {
-		oauthColumn := oauthProviderColumn(providerName)
-		if oauthColumn != "" && model.IsSoftDeletedOAuthUser(oauthColumn, oauthUser.ProviderUserID) {
-			common.ApiErrorI18n(c, i18n.MsgOAuthUserDeleted)
 			return
 		}
 	}
@@ -432,21 +418,26 @@ func handleOAuthError(c *gin.Context, err error) {
 	}
 }
 
-// CompleteOAuthRegistration 验证兑换码并完成 OAuth 注册
+// CompleteOAuthRegistration 验证兑换码并完成注册（支持 OAuth 注册和密码注册）
 func CompleteOAuthRegistration(c *gin.Context) {
 	session := sessions.Default(c)
 
-	// 1. 检查是否有待完成的 OAuth 注册
+	// 检查是 OAuth 注册还是密码注册
 	oauthPending := session.Get("oauth_pending")
-	if oauthPending == nil || !oauthPending.(bool) {
+	regPending := session.Get("reg_pending")
+
+	isOAuthPending := oauthPending != nil && oauthPending.(bool)
+	isRegPending := regPending != nil && regPending.(bool)
+
+	if !isOAuthPending && !isRegPending {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"message": "没有待完成的 OAuth 注册",
+			"message": "没有待完成的注册",
 		})
 		return
 	}
 
-	// 2. 获取兑换码
+	// 获取兑换码
 	var req struct {
 		RedemptionCode string `json:"redemption_code" binding:"required"`
 	}
@@ -455,7 +446,7 @@ func CompleteOAuthRegistration(c *gin.Context) {
 		return
 	}
 
-	// 3. 验证兑换码
+	// 验证兑换码
 	err := model.ValidateRedemptionForOAuth(req.RedemptionCode)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
@@ -465,7 +456,87 @@ func CompleteOAuthRegistration(c *gin.Context) {
 		return
 	}
 
-	// __CONTINUE_HERE__
+	// ====================================================================
+	// 密码注册流程
+	// ====================================================================
+	if isRegPending {
+		username := session.Get("reg_username").(string)
+		password := session.Get("reg_password").(string)
+		displayName := ""
+		if v := session.Get("reg_display_name"); v != nil {
+			displayName = v.(string)
+		}
+		if displayName == "" {
+			displayName = username
+		}
+		email := ""
+		if v := session.Get("reg_email"); v != nil {
+			email = v.(string)
+		}
+
+		affCode := ""
+		if v := session.Get("reg_aff_code"); v != nil {
+			affCode = v.(string)
+		}
+		inviterId := 0
+		if affCode != "" {
+			inviterId, _ = model.GetUserIdByAffCode(affCode)
+		}
+
+		// 再次检查用户不存在（防止并发注册）
+		if exist, _ := model.CheckUserExistOrDeleted(username, email); exist {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "用户名已被注册",
+			})
+			return
+		}
+
+		cleanUser := model.User{
+			Username:    username,
+			Password:    password,
+			DisplayName: displayName,
+			InviterId:   inviterId,
+			Role:        common.RoleCommonUser,
+		}
+		if email != "" {
+			cleanUser.Email = email
+		}
+
+		if err := cleanUser.Insert(inviterId); err != nil {
+			common.ApiError(c, err)
+			return
+		}
+
+		// 消费兑换码并赠送额度
+		quota, redeemErr := model.Redeem(req.RedemptionCode, cleanUser.Id)
+		if redeemErr != nil {
+			common.SysError(fmt.Sprintf("Failed to redeem code for password-registered user %d: %s", cleanUser.Id, redeemErr.Error()))
+			quota = 0
+		}
+
+		// 清除 session
+		session.Delete("reg_pending")
+		session.Delete("reg_username")
+		session.Delete("reg_password")
+		session.Delete("reg_display_name")
+		session.Delete("reg_email")
+		session.Delete("reg_aff_code")
+
+		// 设置登录状态
+		setupLogin(&cleanUser, c)
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "注册成功",
+			"data":    quota,
+		})
+		return
+	}
+
+	// ====================================================================
+	// OAuth 注册流程（原有逻辑）
+	// ====================================================================
 
 	// 4. 从 session 恢复 OAuth 用户信息
 	providerName := session.Get("oauth_provider").(string)
@@ -497,7 +568,6 @@ func CompleteOAuthRegistration(c *gin.Context) {
 		oauthUser.Extra = extra
 	}
 
-	// __CONTINUE_HERE__
 
 	// 5. 创建用户
 	user := &model.User{}
@@ -533,7 +603,6 @@ func CompleteOAuthRegistration(c *gin.Context) {
 		inviterId, _ = model.GetUserIdByAffCode(affCode.(string))
 	}
 
-	// __CONTINUE_HERE__
 
 	// 7. 创建用户并绑定 OAuth
 	err = model.DB.Transaction(func(tx *gorm.DB) error {
@@ -577,7 +646,6 @@ func CompleteOAuthRegistration(c *gin.Context) {
 		return
 	}
 
-	// __CONTINUE_HERE__
 
 	// 8. 用户创建成功后的后续操作
 	user.FinalizeOAuthUserCreation(inviterId)
