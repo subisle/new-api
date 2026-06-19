@@ -324,12 +324,44 @@ func DeleteUserById(id int) (err error) {
 	return user.Delete()
 }
 
+// hardDeleteUserData deletes all data associated with a user within the given transaction.
+func hardDeleteUserData(tx *gorm.DB, userId int) error {
+	type userDataTable struct {
+		model  interface{}
+		column string
+	}
+	tables := []userDataTable{
+		{&Token{}, "user_id"},
+		{&PasskeyCredential{}, "user_id"},
+		{&TwoFA{}, "user_id"},
+		{&TwoFABackupCode{}, "user_id"},
+		{&TopUp{}, "user_id"},
+		{&Task{}, "user_id"},
+		{&Midjourney{}, "user_id"},
+		{&Checkin{}, "user_id"},
+		{&Log{}, "user_id"},
+		{&SubscriptionOrder{}, "user_id"},
+		{&UserSubscription{}, "user_id"},
+		{&SubscriptionPreConsumeRecord{}, "user_id"},
+		{&UserOAuthBinding{}, "user_id"},
+	}
+	for _, t := range tables {
+		if err := tx.Where(t.column+" = ?", userId).Delete(t.model).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func HardDeleteUserById(id int) error {
 	if id == 0 {
 		return errors.New("id 为空！")
 	}
 	return DB.Transaction(func(tx *gorm.DB) error {
-		if err := deleteUserOAuthBindingsByUserId(tx, id); err != nil {
+		if err := hardDeleteUserData(tx, id); err != nil {
+			return err
+		}
+		if err := invalidateUserCache(id); err != nil {
 			return err
 		}
 		return tx.Unscoped().Delete(&User{}, "id = ?", id).Error
@@ -594,7 +626,10 @@ func (user *User) HardDelete() error {
 		return errors.New("id 为空！")
 	}
 	return DB.Transaction(func(tx *gorm.DB) error {
-		if err := deleteUserOAuthBindingsByUserId(tx, user.Id); err != nil {
+		if err := hardDeleteUserData(tx, user.Id); err != nil {
+			return err
+		}
+		if err := invalidateUserCache(user.Id); err != nil {
 			return err
 		}
 		return tx.Unscoped().Delete(user).Error
@@ -1061,12 +1096,24 @@ func GetUsernameById(id int, fromDB bool) (username string, err error) {
 
 func IsLinuxDOIdAlreadyTaken(linuxDOId string) bool {
 	// 不使用 Unscoped：软删除的用户不应视为已占用，否则会与 FillUserByLinuxDOId
-	// （默认排除软删除）语义不一致，导致 OAuth 登录卡在“被当成老用户但又查不到”
+	// （默认排除软删除）语义不一致，导致 OAuth 登录卡在"被当成老用户但又查不到"
 	// 的死区（IsUserIDTaken=true → FillUserByLinuxDOId 返回 record not found）。
 	// 排除软删除后，软删除账号会被当作新用户重新走注册流程。
 	var count int64
 	err := DB.Model(&User{}).Where("linux_do_id = ?", linuxDOId).Count(&count).Error
 	return err == nil && count > 0
+}
+
+// IsSoftDeletedOAuthUser checks if a soft-deleted user exists with the given OAuth column value.
+// Used to detect legacy soft-deleted accounts during OAuth login and return a clear error
+// instead of treating them as new users.
+func IsSoftDeletedOAuthUser(column string, value string) bool {
+	if value == "" {
+		return false
+	}
+	var user User
+	err := DB.Unscoped().Where(column+" = ? AND deleted_at IS NOT NULL", value).First(&user).Error
+	return err == nil
 }
 
 func (user *User) FillUserByLinuxDOId() error {

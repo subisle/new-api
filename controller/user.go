@@ -862,7 +862,7 @@ func DeleteSelf(c *gin.Context) {
 		return
 	}
 
-	err := model.DeleteUserById(id)
+	err := model.HardDeleteUserById(id)
 	if err != nil {
 		common.ApiError(c, err)
 		return

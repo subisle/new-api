@@ -108,6 +108,13 @@ func HandleOAuth(c *gin.Context) {
 		isNewUser := !provider.IsUserIDTaken(oauthUser.ProviderUserID)
 
 		if isNewUser {
+			// Check for soft-deleted user with same OAuth ID (legacy data from before hard-delete)
+			oauthColumn := oauthProviderColumn(providerName)
+			if oauthColumn != "" && model.IsSoftDeletedOAuthUser(oauthColumn, oauthUser.ProviderUserID) {
+				common.ApiErrorI18n(c, i18n.MsgOAuthUserDeleted)
+				return
+			}
+
 			// 新用户，暂存 OAuth 信息到 session，等待前端输入兑换码
 			session.Set("oauth_pending", true)
 			session.Set("oauth_provider", providerName)
@@ -134,6 +141,15 @@ func HandleOAuth(c *gin.Context) {
 				"message":            "",
 				"pending_redemption": true,
 			})
+			return
+		}
+	}
+
+	// 6.5 Check for soft-deleted user with same OAuth ID (legacy data from before hard-delete)
+	if !provider.IsUserIDTaken(oauthUser.ProviderUserID) {
+		oauthColumn := oauthProviderColumn(providerName)
+		if oauthColumn != "" && model.IsSoftDeletedOAuthUser(oauthColumn, oauthUser.ProviderUserID) {
+			common.ApiErrorI18n(c, i18n.MsgOAuthUserDeleted)
 			return
 		}
 	}
@@ -376,6 +392,26 @@ type OAuthRegistrationDisabledError struct{}
 
 func (e *OAuthRegistrationDisabledError) Error() string {
 	return "registration is disabled"
+}
+
+// oauthProviderColumn maps a provider name to the users table column storing the OAuth user ID.
+func oauthProviderColumn(providerName string) string {
+	switch providerName {
+	case "linuxdo":
+		return "linux_do_id"
+	case "github":
+		return "github_id"
+	case "discord":
+		return "discord_id"
+	case "wechat":
+		return "wechat_id"
+	case "telegram":
+		return "telegram_id"
+	case "oidc":
+		return "oidc_id"
+	default:
+		return ""
+	}
 }
 
 // handleOAuthError handles OAuth errors and returns translated message
