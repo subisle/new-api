@@ -80,6 +80,7 @@ export function RedemptionDialog({
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           redemption_code: redemptionCode.trim(),
         }),

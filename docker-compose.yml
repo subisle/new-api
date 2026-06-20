@@ -24,7 +24,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: new-api:rk3318-subisle-deploy-20260620-v4
+    image: new-api:rk3318-subisle-deploy-20260620-v5
     container_name: new-api-app
     restart: always
     ports:
