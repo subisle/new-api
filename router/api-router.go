@@ -289,6 +289,8 @@ func SetApiRouter(router *gin.Engine) {
 			}
 		}
 
+		// 鍏紑楠岃瘉鍏戞崲鐮佹帴鍙ｏ紙涓嶉渶瑕佺櫥褰曪級
+		apiRouter.POST("/redemption/validate", middleware.CriticalRateLimit(), controller.ValidateRedemption)
 		redemptionRoute := apiRouter.Group("/redemption")
 		redemptionRoute.Use(middleware.AdminAuth())
 		{

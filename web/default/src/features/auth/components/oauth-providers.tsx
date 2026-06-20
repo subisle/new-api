@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { ReactNode } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   IconDiscord,
@@ -27,6 +28,7 @@ import {
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useOAuthLogin } from '../hooks/use-oauth-login'
+import { PreOAuthRedemptionDialog } from './pre-oauth-redemption-dialog'
 import type { SystemStatus } from '../types'
 
 type OAuthProvidersProps = {
@@ -57,6 +59,9 @@ export function OAuthProviders({
   isWeChatLoading = false,
 }: OAuthProvidersProps) {
   const { t } = useTranslation()
+  const [showRedemptionDialog, setShowRedemptionDialog] = useState(false)
+  const [pendingProvider, setPendingProvider] = useState<string | null>(null)
+
   const {
     isLoading,
     githubButtonText,
@@ -68,6 +73,30 @@ export function OAuthProviders({
     handleTelegramLogin,
     handleCustomOAuthLogin,
   } = useOAuthLogin(status)
+
+  const requireRedemption = status?.require_redemption_for_oauth ?? false
+
+  const handleLinuxDOClick = () => {
+    if (requireRedemption) {
+      setPendingProvider('linuxdo')
+      setShowRedemptionDialog(true)
+    } else {
+      handleLinuxDOLogin()
+    }
+  }
+
+  const handleRedemptionSuccess = (code: string) => {
+    setShowRedemptionDialog(false)
+    if (pendingProvider === 'linuxdo') {
+      handleLinuxDOLogin(code)
+    }
+    setPendingProvider(null)
+  }
+
+  const handleRedemptionClose = () => {
+    setShowRedemptionDialog(false)
+    setPendingProvider(null)
+  }
 
   const providerButtons: ProviderButton[] = []
 
@@ -112,7 +141,7 @@ export function OAuthProviders({
     providerButtons.push({
       key: 'linuxdo',
       label: t('Continue with LinuxDO'),
-      onClick: handleLinuxDOLogin,
+      onClick: handleLinuxDOClick,
       icon: <IconLinuxDo className='h-4 w-4' />,
     })
   }
@@ -125,7 +154,6 @@ export function OAuthProviders({
     })
   }
 
-  // Custom OAuth providers
   const customProviders = status?.custom_oauth_providers
   if (customProviders && customProviders.length > 0) {
     for (const provider of customProviders) {
@@ -140,39 +168,48 @@ export function OAuthProviders({
   if (providerButtons.length === 0) return null
 
   return (
-    <div className={cn('space-y-3', className)}>
-      <div className='relative'>
-        <div className='absolute inset-0 flex items-center'>
-          <span className='w-full border-t' />
+    <>
+      <div className={cn('space-y-3', className)}>
+        <div className='relative'>
+          <div className='absolute inset-0 flex items-center'>
+            <span className='w-full border-t' />
+          </div>
+          <div className='relative flex justify-center text-xs uppercase'>
+            <span className='bg-card text-muted-foreground px-2'>
+              {t('Or continue with')}
+            </span>
+          </div>
         </div>
-        <div className='relative flex justify-center text-xs uppercase'>
-          <span className='bg-card text-muted-foreground px-2'>
-            {t('Or continue with')}
-          </span>
+
+        <div className='flex flex-col gap-2'>
+          {providerButtons.map(
+            ({ key, label, onClick, icon, disabled: extraDisabled }) => (
+              <Button
+                key={key}
+                variant='outline'
+                type='button'
+                data-pong-collider={withPongCollider ? 'true' : undefined}
+                disabled={disabled || isLoading || extraDisabled}
+                onClick={onClick}
+                className={cn(
+                  'h-11 w-full justify-center gap-2 rounded-lg',
+                  buttonClassName
+                )}
+              >
+                {icon}
+                {label}
+              </Button>
+            )
+          )}
         </div>
       </div>
 
-      <div className='flex flex-col gap-2'>
-        {providerButtons.map(
-          ({ key, label, onClick, icon, disabled: extraDisabled }) => (
-            <Button
-              key={key}
-              variant='outline'
-              type='button'
-              data-pong-collider={withPongCollider ? 'true' : undefined}
-              disabled={disabled || isLoading || extraDisabled}
-              onClick={onClick}
-              className={cn(
-                'h-11 w-full justify-center gap-2 rounded-lg',
-                buttonClassName
-              )}
-            >
-              {icon}
-              {label}
-            </Button>
-          )
-        )}
-      </div>
-    </div>
+      <PreOAuthRedemptionDialog
+        open={showRedemptionDialog}
+        onOpenChange={handleRedemptionClose}
+        onSuccess={handleRedemptionSuccess}
+        providerName={pendingProvider === 'linuxdo' ? 'LinuxDO' : ''}
+      />
+    </>
   )
 }

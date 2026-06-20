@@ -197,3 +197,32 @@ func validateExpiredTime(c *gin.Context, expired int64) (bool, string) {
 	}
 	return true, ""
 }
+
+// ValidateRedemption validates a redemption code without consuming it
+func ValidateRedemption(c *gin.Context) {
+	var req struct {
+		RedemptionCode string `json:"redemption_code" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "Please enter redemption code",
+		})
+		return
+	}
+
+	err := model.ValidateRedemptionForOAuth(req.RedemptionCode)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Redemption code is valid",
+	})
+}
