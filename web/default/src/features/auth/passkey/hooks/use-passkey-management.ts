@@ -17,8 +17,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import axios from 'axios'
 import i18next from 'i18next'
 import { toast } from 'sonner'
+import { useAuthStore } from '@/stores/auth-store'
 import {
   buildRegistrationResult,
   createCredential,
@@ -57,12 +59,19 @@ export function usePasskeyManagement(
         onStatusChange?.(res.data ?? null)
       } else {
         setStatus(null)
-        toast.error(res.message || i18next.t('Failed to load Passkey status'))
+        // Suppress toast when user is already logged out (e.g. account deleted)
+        if (useAuthStore.getState().auth.user) {
+          toast.error(res.message || i18next.t('Failed to load Passkey status'))
+        }
       }
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('[Passkey] Failed to fetch status', error)
-      toast.error(i18next.t('Failed to load Passkey status'))
+      // Suppress toast when user is already logged out or on 401
+      const user = useAuthStore.getState().auth.user
+      if (user && (!axios.isAxiosError(error) || error.response?.status !== 401)) {
+        toast.error(i18next.t('Failed to load Passkey status'))
+      }
       setStatus(null)
     } finally {
       setLoading(false)

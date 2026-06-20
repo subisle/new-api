@@ -20,7 +20,9 @@ import { api } from '@/lib/api'
 import type { ApiResponse, PasskeyOptionsPayload, PasskeyStatus } from './types'
 
 export async function getPasskeyStatus(): Promise<ApiResponse<PasskeyStatus>> {
-  const res = await api.get<ApiResponse<PasskeyStatus>>('/api/user/passkey')
+  const res = await api.get<ApiResponse<PasskeyStatus>>('/api/user/passkey', {
+    skipErrorHandler: true,
+  })
   return res.data
 }
 

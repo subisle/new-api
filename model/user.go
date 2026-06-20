@@ -344,6 +344,7 @@ func hardDeleteUserData(tx *gorm.DB, userId int) error {
 		{&UserSubscription{}, "user_id"},
 		{&SubscriptionPreConsumeRecord{}, "user_id"},
 		{&UserOAuthBinding{}, "user_id"},
+		{&QuotaData{}, "user_id"},
 	}
 	for _, t := range tables {
 		if err := tx.Where(t.column+" = ?", userId).Delete(t.model).Error; err != nil {
@@ -356,6 +357,12 @@ func hardDeleteUserData(tx *gorm.DB, userId int) error {
 func HardDeleteUserById(id int) error {
 	if id == 0 {
 		return errors.New("id 为空！")
+	}
+	// 在删除数据库记录前清理 Redis 中该用户所有令牌的缓存，
+	// 否则已缓存的令牌会在 TTL 过期前仍可通过 TokenAuth 校验调用 API。
+	// InvalidateUserTokensCache 依赖 DB 读取令牌 key，必须在事务删除令牌前调用。
+	if err := InvalidateUserTokensCache(id); err != nil {
+		common.SysLog(fmt.Sprintf("failed to invalidate tokens cache for user %d: %s", id, err.Error()))
 	}
 	return DB.Transaction(func(tx *gorm.DB) error {
 		if err := hardDeleteUserData(tx, id); err != nil {
@@ -1102,18 +1109,6 @@ func IsLinuxDOIdAlreadyTaken(linuxDOId string) bool {
 	var count int64
 	err := DB.Model(&User{}).Where("linux_do_id = ?", linuxDOId).Count(&count).Error
 	return err == nil && count > 0
-}
-
-// IsSoftDeletedOAuthUser checks if a soft-deleted user exists with the given OAuth column value.
-// Used to detect legacy soft-deleted accounts during OAuth login and return a clear error
-// instead of treating them as new users.
-func IsSoftDeletedOAuthUser(column string, value string) bool {
-	if value == "" {
-		return false
-	}
-	var user User
-	err := DB.Unscoped().Where(column+" = ? AND deleted_at IS NOT NULL", value).First(&user).Error
-	return err == nil
 }
 
 func (user *User) FillUserByLinuxDOId() error {

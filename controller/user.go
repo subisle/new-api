@@ -990,17 +990,15 @@ func ManageUser(c *gin.Context) {
 			common.ApiErrorI18n(c, i18n.MsgUserCannotDeleteRootUser)
 			return
 		}
-		if err := user.Delete(); err != nil {
+		// 硬删除：与 DeleteSelf / DeleteUser 行为一致，彻底清除用户及其全部关联数据，
+		// 避免软删除残留占用 username / email / oauth_id 导致同一身份无法重新注册。
+		// HardDeleteUserById 内部已清理 Redis 令牌缓存与用户缓存。
+		if err := model.HardDeleteUserById(user.Id); err != nil {
 			c.JSON(http.StatusOK, gin.H{
 				"success": false,
 				"message": err.Error(),
 			})
 			return
-		}
-		// 删除用户后，强制清理 Redis 中所有该用户令牌的缓存，
-		// 避免已缓存的令牌在 TTL 过期前仍能通过 TokenAuth 校验。
-		if err := model.InvalidateUserTokensCache(user.Id); err != nil {
-			common.SysLog(fmt.Sprintf("failed to invalidate tokens cache for user %d: %s", user.Id, err.Error()))
 		}
 	case "promote":
 		if myRole != common.RoleRootUser {

@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { useState, useEffect, useCallback } from 'react'
 import i18next from 'i18next'
 import { toast } from 'sonner'
+import { useAuthStore } from '@/stores/auth-store'
 import { getUserProfile, updateUserProfile, updateUserSettings } from '../api'
 import type {
   UserProfile,
@@ -49,7 +50,8 @@ export function useProfile() {
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to fetch profile:', error)
-      if (!silent) {
+      // Suppress toast when user is already logged out (e.g. account deleted)
+      if (!silent && useAuthStore.getState().auth.user) {
         toast.error(i18next.t('Failed to load profile'))
       }
     } finally {

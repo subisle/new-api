@@ -64,15 +64,22 @@ export function DeleteAccountDialog({
       if (response.success) {
         toast.success(t('Account deleted successfully'))
 
-        // Logout and redirect
+        // Clear local auth state before any follow-up request so profile-side
+        // effects stop issuing authenticated requests against a deleted account.
+        reset()
+        localStorage.removeItem('user')
+
+        // Best-effort logout: the account may already be deleted server-side,
+        // so suppress global 401/session-expired handling here.
         try {
-          await api.get('/api/user/logout')
+          await api.get('/api/user/logout', {
+            skipBusinessError: true,
+            skipErrorHandler: true,
+          })
         } catch {
           // Ignore logout errors
         }
 
-        reset()
-        localStorage.removeItem('user')
         navigate({ to: '/sign-in' })
       } else {
         toast.error(response.message || t('Failed to delete account'))

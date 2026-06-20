@@ -21,7 +21,13 @@ services:
       retries: 5
 
   new-api:
-    image: ghcr.io/quantumnous/new-api:latest
+    # 使用本地构建的镜像（含本仓库的前端开关与后端兑换码逻辑）。
+    # redeploy-new-api.sh 会 docker build -t new-api:latest，这里的 image 名必须与之一致，
+    # 否则 compose 会去拉上游 ghcr.io 预构建镜像，导致本地改动永远不生效。
+    image: new-api:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: new-api-app
     restart: always
     ports:

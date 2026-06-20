@@ -101,13 +101,18 @@ api.interceptors.response.use(
     const status = error?.response?.status
 
     if (status === 401) {
+      // Check if user was already logged out BEFORE we reset — this handles the
+      // race condition during account deletion where the auth state is cleared
+      // but in-flight requests from still-mounted components receive 401.
+      const alreadyLoggedOut = !useAuthStore.getState().auth.user
+
       try {
         useAuthStore.getState().auth.reset()
       } catch {
         /* empty */
       }
 
-      if (!skip) {
+      if (!skip && !alreadyLoggedOut) {
         toast.error(t('Session expired!'))
       }
     } else if (!skip) {

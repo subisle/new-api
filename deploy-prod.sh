@@ -42,10 +42,13 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 0
 fi
 
-# 拉取最新镜像
+# 构建本地镜像（含本仓库的前端开关与后端兑换码逻辑）
+# 注意：不要用 docker compose pull —— new-api 服务用的是本地构建镜像 new-api:latest，
+# pull 会因为镜像在 registry 不存在而失败。
 echo ""
-echo "📦 拉取最新镜像..."
-docker compose pull
+echo "🔨 构建 new-api 镜像（postgres 等基础镜像仍会自动拉取）..."
+docker compose build new-api
+docker compose pull postgres
 
 # 启动服务
 echo ""
