@@ -251,6 +251,13 @@ function OAuthCallback() {
       <OAuthCallbackScreen provider={provider} mode={mode} />
       <RedemptionDialog
         open={showRedemptionDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowRedemptionDialog(false)
+            toast.info(i18next.t('Login cancelled'))
+            navigate({ to: '/', replace: true })
+          }
+        }}
         onSuccess={async () => {
           setShowRedemptionDialog(false)
           if (await (async () => {
