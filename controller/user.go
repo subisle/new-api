@@ -128,7 +128,11 @@ func recordLoginAudit(user *model.User, c *gin.Context) {
 }
 
 // setup session & cookies and then return user info
-func setupLogin(user *model.User, c *gin.Context) {
+// establishLoginSession persists the login session for the user without writing
+// an HTTP response. Callers that need a custom response body (e.g. the redemption
+// completion flow) use this and emit their own c.JSON; callers that want the
+// standard login payload should use setupLogin.
+func establishLoginSession(user *model.User, c *gin.Context) error {
 	model.UpdateUserLastLoginAt(user.Id)
 	session := sessions.Default(c)
 	session.Set("id", user.Id)
@@ -136,12 +140,18 @@ func setupLogin(user *model.User, c *gin.Context) {
 	session.Set("role", user.Role)
 	session.Set("status", user.Status)
 	session.Set("group", user.Group)
-	err := session.Save()
-	if err != nil {
+	if err := session.Save(); err != nil {
+		return err
+	}
+	recordLoginAudit(user, c)
+	return nil
+}
+
+func setupLogin(user *model.User, c *gin.Context) {
+	if err := establishLoginSession(user, c); err != nil {
 		common.ApiErrorI18n(c, i18n.MsgUserSessionSaveFailed)
 		return
 	}
-	recordLoginAudit(user, c)
 	c.JSON(http.StatusOK, gin.H{
 		"message": "",
 		"success": true,

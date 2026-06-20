@@ -523,8 +523,11 @@ func CompleteOAuthRegistration(c *gin.Context) {
 		session.Delete("reg_email")
 		session.Delete("reg_aff_code")
 
-		// 设置登录状态
-		setupLogin(&cleanUser, c)
+		// 设置登录状态（仅建立会话，不写响应；下面统一返回注册结果）
+		if err := establishLoginSession(&cleanUser, c); err != nil {
+			common.ApiErrorI18n(c, i18n.MsgUserSessionSaveFailed)
+			return
+		}
 
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
@@ -673,8 +676,11 @@ func CompleteOAuthRegistration(c *gin.Context) {
 	session.Delete("oauth_email")
 	session.Delete("oauth_extra")
 
-	// 11. 设置登录状态
-	setupLogin(user, c)
+	// 11. 设置登录状态（仅建立会话，不写响应；下面统一返回注册结果）
+	if err := establishLoginSession(user, c); err != nil {
+		common.ApiErrorI18n(c, i18n.MsgUserSessionSaveFailed)
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
