@@ -172,26 +172,6 @@ function OAuthCallback() {
         const res = await api.get(`/api/oauth/${provider}`, config)
         if (res?.data?.success) {
           if (res.data?.pending_redemption) {
-            // Check for pre-validated redemption code
-            const preRedemptionCode = typeof window !== 'undefined'
-              ? sessionStorage.getItem('pre_oauth_redemption_code')
-              : null
-            if (preRedemptionCode) {
-              sessionStorage.removeItem('pre_oauth_redemption_code')
-              try {
-                const completeRes = await api.post('/api/oauth/complete', {
-                  redemption_code: preRedemptionCode,
-                })
-                if (completeRes?.data?.success) {
-                  if (await finalizeLogin()) {
-                    redirectAfterLogin()
-                    return
-                  }
-                }
-              } catch (_error) {
-                void _error
-              }
-            }
             setShowRedemptionDialog(true)
             return
           }

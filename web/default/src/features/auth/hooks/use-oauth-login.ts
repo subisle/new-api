@@ -35,6 +35,9 @@ type LogoutRequestConfig = AxiosRequestConfig & {
   skipErrorHandler?: boolean
 }
 
+/**
+ * Hook for managing OAuth login
+ */
 export function useOAuthLogin(status: SystemStatus | null) {
   const { t } = useTranslation()
   const [isLoading, setIsLoading] = useState(false)
@@ -161,7 +164,7 @@ export function useOAuthLogin(status: SystemStatus | null) {
     }
   }
 
-  const handleLinuxDOLogin = async (redemptionCode?: string) => {
+  const handleLinuxDOLogin = async () => {
     if (!status?.linuxdo_client_id) return
 
     setIsLoading(true)
@@ -171,10 +174,6 @@ export function useOAuthLogin(status: SystemStatus | null) {
       if (!state) {
         toast.error(t('Failed to initialize OAuth'))
         return
-      }
-
-      if (redemptionCode) {
-        sessionStorage.setItem('pre_oauth_redemption_code', redemptionCode)
       }
 
       const url = buildLinuxDOOAuthUrl(status.linuxdo_client_id, state)
