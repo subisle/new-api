@@ -1,0 +1,6 @@
+{
+  "An error occurred. Please try again": "An error occurred. Please try again",
+  "Invalid or expired redemption code": "Invalid or expired redemption code",
+  "New OAuth users must provide a valid redemption code to register. Administrators can create redemption codes in the backend": "New OAuth users must provide a valid redemption code to register. Administrators can create redemption codes in the backend",
+  "Please enter the redemption code provided by the administrator to complete your registration": "Please enter the redemption code provided by the administrator to complete your registration"
+}

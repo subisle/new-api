@@ -23,6 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { PublicLayout } from '@/components/layout'
 import { PageTransition } from '@/components/page-transition'
 import { HomeNavHeader } from '@/features/home/components/home-nav-header'
+
 import {
   MarketShareSection,
   ModelsSection,

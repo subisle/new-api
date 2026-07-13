@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import axios from 'axios'
 import i18next from 'i18next'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth-store'
 import {
@@ -27,6 +28,7 @@ import {
   isPasskeySupported as detectPasskeySupport,
   prepareCredentialCreationOptions,
 } from '@/lib/passkey'
+
 import {
   beginPasskeyRegistration,
   deletePasskey,

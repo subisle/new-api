@@ -26,7 +26,11 @@ const PromptingIsAllYouNeed = lazy(() =>
       default: module.PromptingIsAllYouNeed,
     })
   )
-)
+import { Link } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
+
+import { Skeleton } from '@/components/ui/skeleton'
+import { useSystemConfig } from '@/hooks/use-system-config'
 
 type AuthLayoutProps = {
   children: ReactNode

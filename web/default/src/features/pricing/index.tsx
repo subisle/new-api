@@ -22,6 +22,7 @@ import { useNotifications } from '@/hooks/use-notifications'
 import { PublicLayout } from '@/components/layout'
 import { PageTransition } from '@/components/page-transition'
 import { HomeNavHeader } from '@/features/home/components/home-nav-header'
+
 import {
   LoadingSkeleton,
   EmptyState,
@@ -131,6 +132,7 @@ export function Pricing() {
           usdExchangeRate={usdExchangeRate}
           tokenUnit={tokenUnit}
           showRechargePrice={showRechargePrice}
+          selectedGroup={groupFilter}
         />
       )
     }
@@ -142,6 +144,7 @@ export function Pricing() {
         usdExchangeRate={usdExchangeRate}
         tokenUnit={tokenUnit}
         showRechargePrice={showRechargePrice}
+        selectedGroup={groupFilter}
         onModelClick={handleModelClick}
       />
     )

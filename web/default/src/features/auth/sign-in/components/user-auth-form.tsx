@@ -34,6 +34,13 @@ import {
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/context/theme-provider'
 import { useStatus } from '@/hooks/use-status'
+import { useEffect, useMemo, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import type { z } from 'zod'
+
+import { Dialog } from '@/components/dialog'
+import { PasswordInput } from '@/components/password-input'
+import { Turnstile } from '@/components/turnstile'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -45,9 +52,6 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Dialog } from '@/components/dialog'
-import { PasswordInput } from '@/components/password-input'
-import { Turnstile } from '@/components/turnstile'
 import { login, wechatLoginByCode } from '@/features/auth/api'
 import { LegalConsent } from '@/features/auth/components/legal-consent'
 import { OAuthProviders } from '@/features/auth/components/oauth-providers'
@@ -56,6 +60,13 @@ import { useAuthRedirect } from '@/features/auth/hooks/use-auth-redirect'
 import { useTurnstile } from '@/features/auth/hooks/use-turnstile'
 import { beginPasskeyLogin, finishPasskeyLogin } from '@/features/auth/passkey'
 import type { AuthFormProps } from '@/features/auth/types'
+import { useStatus } from '@/hooks/use-status'
+import {
+  buildAssertionResult,
+  prepareCredentialRequestOptions,
+  isPasskeySupported as detectPasskeySupport,
+} from '@/lib/passkey'
+import { cn } from '@/lib/utils'
 
 function AuthReveal({
   children,

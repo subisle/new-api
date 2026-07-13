@@ -25,6 +25,8 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { AnimatedOutlet } from '@/components/page-transition'
 import { SkipToMain } from '@/components/skip-to-main'
 import { HomeNavHeader } from '@/features/home/components/home-nav-header'
+
+import { AppHeader } from './app-header'
 import { AppSidebar } from './app-sidebar'
 
 type AuthenticatedLayoutProps = {
