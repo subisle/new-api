@@ -248,9 +248,9 @@ function NoticeContent({
   }
 
   return (
-    <ScrollArea className='h-[min(52vh,28rem)] pr-3'>
+    <NotificationContentArea size={size}>
       <RichContent breaks content={notice} />
-    </ScrollArea>
+    </NotificationContentArea>
   )
 }
 
@@ -301,26 +301,12 @@ function AnnouncementsContent({
 
           return (
             <div key={announcementKey}>
-              <div className='py-3'>
-                <div className='flex items-start gap-3'>
-                  <AnnouncementDot type={item.type} />
-                  <div className='flex min-w-0 flex-1 flex-col gap-2'>
-                    <div className='text-sm'>
-                      <RichContent breaks content={item.content || ''} />
-                    </div>
+              <NotificationItem icon={<AnnouncementDot type={item.type} />}>
+                <RichContent breaks content={item.content || ''} />
 
-                    {item.extra ? (
-                      <div className='text-muted-foreground text-xs'>
-                        <RichContent breaks content={item.extra} />
-                      </div>
-                    ) : null}
-
-                    {absoluteTime ? (
-                      <div className='text-muted-foreground text-xs'>
-                        {relativeTime ? `${relativeTime} • ` : null}
-                        {absoluteTime}
-                      </div>
-                    ) : null}
+                {item.extra ? (
+                  <div className='text-muted-foreground text-xs leading-5'>
+                    <RichContent breaks content={item.extra} />
                   </div>
                 ) : null}
 
